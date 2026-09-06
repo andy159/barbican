@@ -6,6 +6,7 @@ import { stepCamera, cam, VIEW_W, VIEW_H } from './camera.js';
 import { bindCanvas, render, stepAmbience } from './render.js';
 import { bindInput, heldLeft, heldRight, heldUp, heldDown,
          heldJump, heldDash, heldBarge } from './input.js';
+import { playIntro } from './intro.js';
 
 initWorld();
 const P = makePlayer();
@@ -55,4 +56,15 @@ function frame(now){
   render(P, acc/STEP, debugOn, fps);
   requestAnimationFrame(frame);
 }
-requestAnimationFrame(frame);
+
+/* the anime intro plays on a fresh load; dev flows (?level / ?at) skip it */
+const wantsIntro = !new URLSearchParams(location.search).get('level') &&
+                   !new URLSearchParams(location.search).get('at');
+if(wantsIntro){
+  playIntro(document.getElementById('c'), () => {
+    last = performance.now();
+    requestAnimationFrame(frame);
+  });
+}else{
+  requestAnimationFrame(frame);
+}

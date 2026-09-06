@@ -190,8 +190,8 @@ export function renderMothlight(ctx, P, alpha, debugOn, fps){
     const col = STAMP_COLS[Math.floor(h2(s, 16) * 4.9 +
                  (h2(s, 21) < 0.12 ? 5 + h2(s, 22) : 0)) % 7];
     const a = 0.34 + h2(s, 17) * 0.34;
-    if(type < 0.42)       stampWing(ctx, x, y, sc, rot, col, a, s);
-    else if(type < 0.68)  stampLeaf(ctx, x, y, sc, rot, col, a, s);
+    if(type < 0.55)       stampWing(ctx, x, y, sc, rot, col, a, s);
+    else if(type < 0.72)  stampLeaf(ctx, x, y, sc, rot, col, a, s);
     else if(type < 0.88)  stampGrass(ctx, x, y, sc, rot, a, s);
     else if(type < 0.96)  stampPetal(ctx, x, y, sc * 0.5, rot, a);
     else                  stampSeeds(ctx, x, y, sc, a, s);
@@ -384,22 +384,47 @@ function roundRectFill(ctx, x, y, w, h, r){
 
 /* ---------------- stamps (the film's imagery) ---------------- */
 function stampWing(ctx, x, y, s, rot, col, a, seed){
+  /* a PAIR of wings about a furred body — the pressed-moth signature.
+     A single veined lobe reads as a leaf; the mirrored pair does not. */
   ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.globalAlpha = a;
-  ctx.fillStyle = col;
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.quadraticCurveTo(s * 0.85, -s * 0.55, s, -s * 0.12);
-  ctx.quadraticCurveTo(s * 0.7, s * 0.4, 0, 0);
-  ctx.fill();
-  /* vein ribs radiating from the wing root */
-  ctx.strokeStyle = UMBER; ctx.lineWidth = 0.6; ctx.globalAlpha = a * 0.9;
-  for(let i = 0; i < 4; i++){
-    const f = 0.25 + i * 0.2 + h2(seed, 50 + i) * 0.08;
-    ctx.beginPath(); ctx.moveTo(0, 0);
-    ctx.quadraticCurveTo(s * 0.5, -s * 0.5 * f + s * 0.12,
-                         s * (0.75 + f * 0.2), -s * 0.45 * f + s * 0.12);
-    ctx.stroke();
+  for(const m of [1, -1]){
+    ctx.save(); ctx.scale(m, 1);
+    ctx.fillStyle = col;
+    /* forewing lobe swept up-outward */
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(s * 0.85, -s * 0.55, s, -s * 0.12);
+    ctx.quadraticCurveTo(s * 0.7, s * 0.4, 0, 0);
+    ctx.fill();
+    /* hindwing lobe tucked behind */
+    ctx.beginPath();
+    ctx.moveTo(0, s * 0.06);
+    ctx.quadraticCurveTo(s * 0.5, s * 0.28, s * 0.45, s * 0.5);
+    ctx.quadraticCurveTo(s * 0.18, s * 0.5, 0, s * 0.06);
+    ctx.fill();
+    /* vein ribs radiating from the wing root */
+    ctx.strokeStyle = UMBER; ctx.lineWidth = 0.6; ctx.globalAlpha = a * 0.9;
+    for(let i = 0; i < 4; i++){
+      const f = 0.25 + i * 0.2 + h2(seed, 50 + i) * 0.08;
+      ctx.beginPath(); ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(s * 0.5, -s * 0.5 * f + s * 0.12,
+                           s * (0.75 + f * 0.2), -s * 0.45 * f + s * 0.12);
+      ctx.stroke();
+    }
+    /* the odd eyespot on the forewing */
+    if(h2(seed, 77) < 0.35){
+      ctx.fillStyle = UMBER; ctx.globalAlpha = a * 0.7;
+      ctx.beginPath(); ctx.ellipse(s * 0.62, -s * 0.2, s * 0.11, s * 0.08, 0, 0, 6.283); ctx.fill();
+    }
+    ctx.globalAlpha = a;
+    ctx.restore();
   }
+  /* furred body + antennae */
+  ctx.fillStyle = UMBER; ctx.globalAlpha = a * 0.95;
+  ctx.fillRect(-s * 0.06, -s * 0.18, s * 0.12, s * 0.62);
+  ctx.strokeStyle = UMBER; ctx.lineWidth = 0.6;
+  ctx.beginPath(); ctx.moveTo(0, -s * 0.16); ctx.lineTo(-s * 0.2, -s * 0.42);
+  ctx.moveTo(0, -s * 0.16); ctx.lineTo( s * 0.2, -s * 0.42); ctx.stroke();
   ctx.restore(); ctx.globalAlpha = 1;
 }
 function stampLeaf(ctx, x, y, s, rot, col, a, seed){
