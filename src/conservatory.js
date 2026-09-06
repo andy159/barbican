@@ -394,7 +394,15 @@ export function tileSkin(ctx, t, tx, ty, sx, sy, topExposed, P){
     return true;
   }
   if(t === 'B'){
-    /* concrete bench gone green at the edges */
+    /* concrete bench gone green at the edges — lamplit so it reads
+       against the gloom (benches save your progress) */
+    const active = P.checkpoint && Math.floor(P.checkpoint.x/TILE) === tx;
+    const pulse = (active ? 0.26 : 0.17) + Math.sin(clock*0.05 + tx)*0.05;
+    ctx.fillStyle = `rgba(247,198,35,${pulse*0.7})`;
+    ctx.fillRect(sx-14, sy-14, 36, 32);
+    ctx.fillStyle = `rgba(247,198,35,${pulse})`;
+    ctx.fillRect(sx-7,  sy-9,  22, 24);
+    ctx.fillStyle = '#e8c67a'; ctx.fillRect(sx+3, sy-6, 2, 2);   // little lamp
     ctx.fillStyle = '#7d786d'; ctx.fillRect(sx,   sy+3, 8, 2);
     ctx.fillStyle = '#5f5b52'; ctx.fillRect(sx+1, sy+5, 1, 3);
     ctx.fillRect(sx+6, sy+5, 1, 3);
