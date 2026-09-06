@@ -1,12 +1,15 @@
 /* Fixed 60Hz timestep loop with accumulator + render interpolation. */
 import { initWorld, checkExit, outroActive } from './world.js';
 import { currentRoom } from './level.js';
+import * as levelMod from './level.js';
 import { makePlayer, respawn, step } from './player.js';
 import { stepCamera, cam, VIEW_W, VIEW_H } from './camera.js';
 import { bindCanvas, render, stepAmbience } from './render.js';
 import { bindInput, heldLeft, heldRight, heldUp, heldDown,
          heldJump, heldDash, heldBarge } from './input.js';
 import { playIntro } from './intro.js';
+import * as audio from './audio.js';
+import { G as GARDENER } from './gardener.js';
 
 initWorld();
 const P = makePlayer();
@@ -39,6 +42,22 @@ try{
   }
 }catch(e){}
 
+audio.attach();                                  // music starts on first input
+
+/* which score fits where the player is standing */
+function currentMood(){
+  const id = currentRoom().id;
+  if(id === 'mothlight') return 'mothlight';
+  if(id === 'conservatory')
+    return (P.x >= 342*8 && !GARDENER.dead) ? 'boss' : 'conservatory';
+  if(id === 'arts-centre')
+    return (P.x >= 169*8 && P.x <= 213*8) ? 'mozart' : 'interior';   // the Martini Bar
+  /* estate route */
+  if(typeof levelMod.interiorAt === 'function' && levelMod.interiorAt(P.x + P.w/2, P.y + P.h/2))
+    return 'tower';
+  return P.x >= 272*8 ? 'ponds' : 'daylight';
+}
+
 globalThis.__P = P;                              // console debugging handle
 
 let debugOn = false;
@@ -62,10 +81,11 @@ function frame(now){
       jump: heldJump(), dash: heldDash(), barge: heldBarge(),
     });
     checkExit(P);
-    if(outroActive()) return;           // the ending film owns the canvas now
+    if(outroActive()){ audio.setMood('mozart'); return; }   // the bar is playing
     currentRoom().tick?.(P);            // room hook (moth waves, boss fights)
     stepAmbience();
     stepCamera(P);
+    if((acc/STEP|0) % 2 === 0) audio.setMood(currentMood());
     acc -= STEP;
   }
   render(P, acc/STEP, debugOn, fps);
