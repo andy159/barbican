@@ -182,6 +182,15 @@ function placeOnRoute(x, surfaceRow, abilities = {}){
   check(!level.solidAt(122,34) && !level.solidAt(122,35), 'shaft door to the pocket');
 }
 
+/* --- shaft entry: walkable from the west at ground level --- */
+{
+  const P = placeOnRoute(110*TILE, 36);
+  for(let f = 0; f < 200 && P.x < 119*TILE; f++) step(P, { right: true });
+  const inShaft = P.grounded && P.x >= 119*TILE && Math.abs(feet(P) - 36*TILE) < 1.2;
+  console.log(`shaft entry        : ${inShaft ? 'walked in at ground level' : 'BLOCKED'}`);
+  check(inShaft, 'shaft must be enterable on foot from the west');
+}
+
 /* --- service shaft: 16-tile wall-jump climb (cols 118-121) --- */
 function climbShaft(P, exitY, maxFrames){
   let jumpHeld = false, minFeet = feet(P);
@@ -265,6 +274,14 @@ function runJump(startX, surfaceRow, edgeX, landX, landRow, maxF = 300){
   const ok = runJump(159*TILE, 20, 166*TILE, 172*TILE, 20);
   console.log(`highwalk gap (6)   : ${ok ? 'crossed' : 'FAILED'}`);
   check(ok, 'highwalk 6-tile gap must be jumpable');
+}
+{
+  /* tower entry: through both doorways at deck level */
+  const P = placeOnRoute(206*TILE, 20);
+  for(let f = 0; f < 300 && P.x < 223*TILE; f++) step(P, { right: true });
+  const inTower = P.grounded && P.x >= 223*TILE && Math.abs(feet(P) - 20*TILE) < 1.2;
+  console.log(`tower entry        : ${inTower ? 'walked through both doors' : 'BLOCKED'}`);
+  check(inTower, 'tower must be enterable on foot from the highwalk');
 }
 {
   /* tower interior shaft: 12-tile wall-jump climb (cols 222-225) */
