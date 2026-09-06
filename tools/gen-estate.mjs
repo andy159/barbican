@@ -150,6 +150,7 @@ const fountains = [[332,48,0],[336,48,0],[340,48,0],[344,48,0],[348,48,0],
                    [351,48,1],[352,48,1],[353,50,1]];
 const signs = [
   [10,46,'FROBISHER WALK →'],
+  [3,44,'BENCHES SAVE YOUR PROGRESS'],
   [20,52,'WALL JUMP ↑'],
   [60,46,'GILBERT BRIDGE →'],
   [110,46,'SPEED HIGHWALK ↑'],

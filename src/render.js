@@ -222,11 +222,17 @@ function drawScene(P, alpha, cx, cy, interiorRoom, consMode, debugOn, fps){
           ctx.fillStyle = '#4a7a71'; ctx.fillRect(sx+2, sy+3, 4, 1);
         }
       }else if(t === 'B'){
-        /* concrete bench (checkpoint): slab on two feet */
+        /* concrete bench (checkpoint): softly lit; warmer once rested */
+        const active = P.checkpoint && Math.floor(P.checkpoint.x/TILE) === tx;
+        const pulse = (active ? 0.16 : 0.09) + Math.sin(frame*0.05 + tx)*0.04;
+        ctx.fillStyle = `rgba(247,198,35,${pulse})`;
+        ctx.fillRect(sx-8, sy-8, 24, 22);
+        ctx.fillStyle = `rgba(247,198,35,${pulse*0.8})`;
+        ctx.fillRect(sx-14, sy-12, 36, 30);
         ctx.fillStyle = '#b3aca0'; ctx.fillRect(sx,   sy+3, 8, 2);
         ctx.fillStyle = '#8f887c'; ctx.fillRect(sx+1, sy+5, 1, 3);
         ctx.fillRect(sx+6, sy+5, 1, 3);
-        if(P.checkpoint && Math.floor(P.checkpoint.x/TILE) === tx){
+        if(active){
           ctx.fillStyle = '#f7c623'; ctx.fillRect(sx+3, sy+2, 2, 1);   // resting mark
         }
       }else if(t === 'T' && insideT > 0.5){

@@ -77,6 +77,7 @@ export const HIGHWALK = {
   houses: [[334,348]],
   signs: [
     { tx: 10, ty: 46, text: "FROBISHER WALK →" },
+    { tx: 3, ty: 44, text: "BENCHES SAVE YOUR PROGRESS" },
     { tx: 20, ty: 52, text: "WALL JUMP ↑" },
     { tx: 60, ty: 46, text: "GILBERT BRIDGE →" },
     { tx: 110, ty: 46, text: "SPEED HIGHWALK ↑" },
