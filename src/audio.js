@@ -11,9 +11,11 @@ let padOsc = [], padGain = null, purr = null;
    pace (avg seconds between melody notes), brightness (lowpass Hz) */
 const MOODS = {
   daylight:    { root: 220.00, chords: [[0,4,7,11],[5,9,12,16],[7,11,14,17],[2,5,9,12]],
-                 scale: [0,2,4,7,9,12,14], pace: 3.2, lp: 1600, padGain: 0.050, melGain: 0.060 },
+                 scale: [0,2,4,7,9,12,14,16], pace: 1.6, lp: 2300,
+                 padGain: 0.048, melGain: 0.068, noteDur: 1.0, octUp: 0.45 },
   ponds:       { root: 220.00, chords: [[0,4,7,11],[5,9,12,16],[9,12,16,19],[7,11,14,17]],
-                 scale: [4,7,9,12,14,16,19], pace: 2.0, lp: 2400, padGain: 0.045, melGain: 0.065 },
+                 scale: [4,7,9,12,14,16,19], pace: 2.0, lp: 2400,
+                 padGain: 0.045, melGain: 0.065, noteDur: 2.2 },
   tower:       { root: 110.00, chords: [[0,7,12],[0,5,12],[0,7,10]],
                  scale: [0,3,7,10,12], pace: 6.0, lp: 700,  padGain: 0.060, melGain: 0.035 },
   interior:    { root: 146.83, chords: [[0,3,7,10],[5,8,12],[3,7,10,14],[0,3,7,10]],
@@ -192,8 +194,8 @@ function tick(){
   if(M.scale.length && now >= noteAt){
     noteAt = now + M.pace * (0.5 + Math.random());
     const n = M.scale[Math.floor(Math.random()*M.scale.length)];
-    const oct = Math.random() < 0.3 ? 2 : 1;
-    ping(M.root * 2 * oct * st(n), M.melGain, mood === 'ponds' ? 2.2 : 1.6);
+    const oct = Math.random() < (M.octUp ?? 0.3) ? 2 : 1;
+    ping(M.root * 2 * oct * st(n), M.melGain, M.noteDur ?? 1.6);
   }
 
   /* the gantry's heartbeat */
