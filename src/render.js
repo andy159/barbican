@@ -128,15 +128,7 @@ export function render(P, alpha, debugOn, fps){
   /* player (interpolated, squashed around bottom-center) */
   const ix = P.px + (P.x-P.px)*alpha - cx;
   const iy = P.py + (P.y-P.py)*alpha - cy;
-  const w = P.w*P.sx, h = P.h*P.sy;
-  const dx = ix + P.w/2 - w/2, dy = iy + P.h - h;
-  ctx.fillStyle = '#2f3440';
-  ctx.fillRect(dx, dy, w, h);
-  ctx.fillStyle = '#ffd23e';                       // yellow scarf accent
-  ctx.fillRect(dx, dy+3*P.sy, w, 2*P.sy);
-  ctx.fillStyle = '#14141a';                       // eyes face the move direction
-  const eye = P.facing > 0 ? dx+w-3 : dx+1;
-  ctx.fillRect(eye, dy+1, 2, 2);
+  drawPlayer(P, ix, iy);
 
   /* bright atmospheric haze at the base + the gentlest vignette */
   const haze = ctx.createLinearGradient(0,VIEW_H-32,0,VIEW_H);
@@ -262,6 +254,49 @@ function drawTerraceBlock(cx){
         }
       }
     }
+  }
+}
+
+/* The small dark figure with the yellow scarf. Drawn on an 8×14 pixel
+   grid scaled by the squash factors, mirrored by facing; legs step from
+   distance travelled so the walk needs no animation clock. */
+function drawPlayer(P, ix, iy){
+  const w = P.w*P.sx, h = P.h*P.sy;
+  const dx = ix + P.w/2 - w/2, dy = iy + P.h - h;
+  const ux = w/8, uy = h/14;
+  const px = (x,y,ww,hh,c) => {
+    if(P.facing < 0) x = 8 - x - ww;               // mirror around the box
+    ctx.fillStyle = c;
+    ctx.fillRect(dx + x*ux, dy + y*uy, ww*ux, hh*uy);
+  };
+
+  const moving = P.grounded && Math.abs(P.vx) > 0.2;
+  const stride = Math.floor(P.x/5)%2 === 0;
+
+  /* scarf tail streams off the back shoulder */
+  px(0,6,1,3,'#e8b92e');
+  /* hair */
+  px(2,0,4,1,'#2a2622');
+  px(1,1,6,2,'#2a2622');
+  /* face */
+  px(2,2,5,3,'#d9a878');
+  px(5,3,1,1,'#14141a');                           // eye faces the move direction
+  /* scarf */
+  px(1,5,6,2,'#ffd23e');
+  /* jacket */
+  px(1,7,6,4,'#2f3440');
+  px(1,8,1,3,'#252a35');                           // back arm in shade
+  px(6,8,1,3,'#3a4152');                           // front arm catches light
+  /* legs */
+  if(!P.grounded){
+    px(2,11,2,2,'#23262e'); px(4,12,2,2,'#23262e');   // tucked mid-air
+    px(2,12,2,1,'#1a1c22'); px(4,13,2,1,'#1a1c22');
+  }else if(moving && stride){
+    px(1,11,2,3,'#23262e'); px(5,11,2,3,'#23262e');   // stride apart
+    px(1,13,2,1,'#1a1c22'); px(5,13,2,1,'#1a1c22');
+  }else{
+    px(2,11,2,3,'#23262e'); px(4,11,2,3,'#23262e');   // feet together
+    px(2,13,2,1,'#1a1c22'); px(4,13,2,1,'#1a1c22');
   }
 }
 
