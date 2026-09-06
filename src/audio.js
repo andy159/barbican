@@ -150,13 +150,13 @@ function tickSeq(now){
   if(seqBassNext < now) seqBassNext = seqNext;
   while(seqNext < now + 0.6){
     const [n, beats] = EKN_LEAD[seqLeadI % EKN_LEAD.length];
-    if(n !== null) ping(392 * st(n), 0.055, EKN_BEAT * beats * 0.9, seqNext);
+    if(n !== null) ping(392 * st(n), 0.12, EKN_BEAT * beats * 0.9, seqNext);
     seqNext += EKN_BEAT * beats;
     seqLeadI++;
   }
   while(seqBassNext < now + 0.6){
     const [n, beats] = EKN_BASS[seqBassI % EKN_BASS.length];
-    ping(392 * st(n), 0.038, EKN_BEAT * beats * 0.95, seqBassNext);
+    ping(392 * st(n), 0.075, EKN_BEAT * beats * 0.95, seqBassNext);
     seqBassNext += EKN_BEAT * beats;
     seqBassI++;
   }

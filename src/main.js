@@ -53,16 +53,8 @@ function currentMood(){
   if(id === 'conservatory' && P.x >= 235*8 && P.x < 342*8) return 'arid';
   if(id === 'arts-centre'){
     const z = (currentRoom().zones || []).find(z => P.x/8 >= z.x0 && P.x/8 <= z.x1);
-    switch(z?.type){
-      case 'bar':       return 'mozart';
-      case 'foyer':     return 'foyer';
-      case 'stalls':
-      case 'flytower':
-      case 'backstage': return 'theatre';
-      case 'cinema':    return 'cinema';
-      case 'exit':      return 'daylight';      // sunlight spills into the corridor
-      default:          return 'interior';
-    }
+    /* the whole centre hums with Mozart — except in the film's grip */
+    return z?.type === 'cinema' ? 'cinema' : 'mozart';
   }
   /* estate route */
   if(typeof levelMod.interiorAt === 'function' && levelMod.interiorAt(P.x + P.w/2, P.y + P.h/2))
