@@ -1,5 +1,12 @@
-/* All drawing, layered: sky → towers → petals → tiles → planters →
-   player → haze → vignette → debug. Keep that order. */
+/* All drawing, layered: sky → far towers → terrace block → petals →
+   tiles → planters → player → haze → vignette → debug. Keep that order.
+
+   Backdrop modeled on the real estate (see Wikipedia refs, 2026-09-06):
+   - towers: warm brown-grey concrete, serrated balcony bands, flared
+     base, asymmetric bladed crown (Cromwell/Shakespeare/Lauderdale)
+   - terrace block: white barrel-vault roofline, pale slab bands over
+     dark glazing, greenery spilling from the balconies
+   - podium: warm brick paving carries the Yellow Line */
 import { TILE, tileAt, solidAt } from './level.js';
 import * as level from './level.js';
 import { cam, VIEW_W, VIEW_H } from './camera.js';
@@ -9,6 +16,27 @@ export function bindCanvas(canvas){
   ctx = canvas.getContext('2d');
   ctx.imageSmoothingEnabled = false;
 }
+
+/* ---------------- palette (sampled from reference photos) ---------------- */
+const PAL = {
+  towerSun:   '#a89a83',   // sunlit pick-hammered concrete
+  towerMid:   '#948875',
+  towerShade: '#6e6557',
+  glaze:      '#3a3d3c',   // deep-set window bands
+  glazeFar:   '#7d7f7e',
+  slabLight:  '#c2b7a2',   // balcony fronts catching the light
+  vault:      '#e9e5da',   // the white barrel vaults
+  vaultShade: '#b9b2a4',
+  brick:      '#8f5f48',   // lakeside terrace paving
+  brickDark:  '#74492f',
+  brickLight: '#a97a58',
+  conc:       '#8f8779',   // play-space concrete
+  concDark:   '#7a7266',
+  concLight:  '#d6cfc0',
+  green:      '#5f7d4c',   // spilling planting
+  greenDark:  '#46603a',
+};
+const FLOWERS = ['#e0568a','#d94f4f','#f2a0c0','#f7f2e9','#c2477e'];
 
 /* ---------------- ambience: drifting petals ---------------- */
 const rand = n => Math.random()*n;
@@ -29,21 +57,26 @@ export function stepAmbience(){
 export function render(P, alpha, debugOn, fps){
   const cx = Math.round(cam.x), cy = Math.round(cam.y);
 
-  /* sky — bright hazy London daylight */
+  /* sky — bright hazy London daylight, warmer at the horizon */
   const g = ctx.createLinearGradient(0,0,0,VIEW_H);
-  g.addColorStop(0,'#a8c4dc'); g.addColorStop(0.6,'#cdd9e2'); g.addColorStop(1,'#e6e3da');
+  g.addColorStop(0,'#a8c4dc'); g.addColorStop(0.6,'#cfd8dc'); g.addColorStop(1,'#e8e0cd');
   ctx.fillStyle = g; ctx.fillRect(0,0,VIEW_W,VIEW_H);
   /* soft sun */
   const sun = ctx.createRadialGradient(252,30,4,252,30,60);
   sun.addColorStop(0,'rgba(255,250,235,0.9)'); sun.addColorStop(1,'rgba(255,250,235,0)');
   ctx.fillStyle = sun; ctx.beginPath(); ctx.arc(252,30,60,0,7); ctx.fill();
 
-  /* parallax towers, balconies in bloom (far layer hazier, near layer full detail) */
-  drawTower( 56 - cx*0.22,  26, 40, true,  1);
-  drawTower(168 - cx*0.22,  14, 46, true,  2);
-  drawTower(286 - cx*0.22,  34, 36, true,  3);
-  drawTower(104 - cx*0.45,  52, 34, false, 4);
-  drawTower(238 - cx*0.45,  60, 30, false, 5);
+  /* the three towers, far parallax */
+  drawTower( 48 - cx*0.18,  22, 30, 1);
+  drawTower(150 - cx*0.18,  10, 34, 2);
+  drawTower(262 - cx*0.18,  30, 28, 3);
+
+  /* terrace block, nearer parallax, tiling across the whole view */
+  drawTerraceBlock(cx);
+
+  /* haze veil pushes the whole backdrop back so the play layer reads */
+  ctx.fillStyle = 'rgba(213,219,222,0.42)';
+  ctx.fillRect(0,0,VIEW_W,VIEW_H);
 
   /* drifting petals */
   for(const m of motes){
@@ -59,18 +92,26 @@ export function render(P, alpha, debugOn, fps){
       const t = tileAt(tx,ty);
       if(t !== '#' && t !== '=') continue;
       const sx = tx*TILE - cx, sy = ty*TILE - cy;
-      ctx.fillStyle = '#9b968b';
-      ctx.fillRect(sx,sy,TILE,TILE);
-      /* board-marked concrete: horizontal shutter lines */
-      ctx.fillStyle = '#868178';
-      ctx.fillRect(sx,sy+3,TILE,1);
-      ctx.fillRect(sx,sy+6,TILE,1);
-      /* sunlit top edge if exposed */
-      if(!solidAt(tx,ty-1)){
-        ctx.fillStyle = '#dcd8cc';
-        ctx.fillRect(sx,sy,TILE,1);
-        if(t === '='){
-          ctx.fillStyle = '#f7c623'; ctx.fillRect(sx,sy,TILE,1);   // the Yellow Line
+      const topExposed = !solidAt(tx,ty-1);
+      if(t === '=' && topExposed){
+        /* walkway: brick paving with staggered joints */
+        ctx.fillStyle = PAL.brick;      ctx.fillRect(sx,sy,TILE,TILE);
+        ctx.fillStyle = PAL.brickDark;  ctx.fillRect(sx,sy+3,TILE,1);
+        ctx.fillRect(sx + (tx%2 ? 2 : 5), sy, 1, 3);
+        ctx.fillRect(sx + (tx%2 ? 6 : 1), sy+4, 1, 4);
+        ctx.fillStyle = PAL.brickLight; ctx.fillRect(sx,sy+7,TILE,1);
+        ctx.fillStyle = '#f7c623';      ctx.fillRect(sx,sy,TILE,1);   // the Yellow Line
+      }else{
+        /* board-marked, pick-hammered concrete */
+        ctx.fillStyle = PAL.conc;     ctx.fillRect(sx,sy,TILE,TILE);
+        ctx.fillStyle = PAL.concDark; ctx.fillRect(sx,sy+3,TILE,1);
+        ctx.fillRect(sx,sy+6,TILE,1);
+        /* deterministic aggregate speckle (stable per tile — no flicker) */
+        const h = (tx*73 + ty*151) % 8;
+        ctx.fillRect(sx + h, sy + ((tx*31+ty*17)%2 ? 1 : 4), 1, 1);
+        if(topExposed){
+          ctx.fillStyle = PAL.concLight;
+          ctx.fillRect(sx,sy,TILE,1);
         }
       }
     }
@@ -99,7 +140,7 @@ export function render(P, alpha, debugOn, fps){
 
   /* bright atmospheric haze at the base + the gentlest vignette */
   const haze = ctx.createLinearGradient(0,VIEW_H-32,0,VIEW_H);
-  haze.addColorStop(0,'rgba(220,228,235,0)'); haze.addColorStop(1,'rgba(220,228,235,0.28)');
+  haze.addColorStop(0,'rgba(226,222,208,0)'); haze.addColorStop(1,'rgba(226,222,208,0.28)');
   ctx.fillStyle = haze; ctx.fillRect(0,VIEW_H-32,VIEW_W,32);
   const vig = ctx.createRadialGradient(VIEW_W/2,VIEW_H/2,90,VIEW_W/2,VIEW_H/2,210);
   vig.addColorStop(0,'rgba(30,40,60,0)'); vig.addColorStop(1,'rgba(30,40,60,0.14)');
@@ -123,29 +164,103 @@ export function render(P, alpha, debugOn, fps){
   }
 }
 
-function drawTower(x, top, w, far, seed){
-  /* palettes sampled from the estate in daylight */
-  const conc = far ? '#aebbc6' : '#8f949b';   // pebbledash concrete
-  const slab = far ? '#bcc8d2' : '#aaaeb4';   // balcony lip catching light
-  const win  = far ? '#8e9dac' : '#3c4450';   // glazing band
-  const rail = far ? '#92a4b8' : '#37588a';   // the blue-painted railings
-  const FLOWERS = ['#e0568a','#d94f4f','#f2a0c0','#f7f2e9','#c2477e'];
-  ctx.fillStyle = conc; ctx.fillRect(x,top,w,VIEW_H-top);
-  for(let i = 0; i < w; i += 6) ctx.fillRect(x+i, top-4, 3, 4);   // jagged crown
-  for(let fy = top+6; fy < VIEW_H-4; fy += 11){                   // one floor per band
-    ctx.fillStyle = win;  ctx.fillRect(x+1, fy,   w-2, 5);
-    ctx.fillStyle = rail; ctx.fillRect(x+1, fy+5, w-2, 1);
-    ctx.fillStyle = slab; ctx.fillRect(x,   fy+6, w,   3);
-    if(!far){
-      /* flower boxes spilling over the railings */
-      for(let fx = 2; fx < w-3; fx += 3){
-        const hsh = (fx*7 + fy*13 + seed*31)%19;
-        if(hsh < 8){ ctx.fillStyle = FLOWERS[hsh%FLOWERS.length]; ctx.fillRect(x+fx, fy+4, 2, 2); }
-        else if(hsh < 11){ ctx.fillStyle = '#6f8f5a'; ctx.fillRect(x+fx, fy+4, 2, 2); }
+/* One of the estate's three towers: slim warm-concrete shaft, serrated
+   balcony bands, flared base, asymmetric bladed crown. */
+function drawTower(x, top, w, seed){
+  x = Math.round(x);
+  if(x + w + 8 < 0 || x - 8 > VIEW_W) return;
+
+  /* crown: three blades of unequal height (tallest off-center) */
+  const blades = [
+    [0,            10 + (seed*3)%5, 5],
+    [(w>>1) - 2,   16 + (seed*5)%6, 6],
+    [w - 5,        7  + (seed*7)%4, 5],
+  ];
+  for(const [bx,bh,bw] of blades){
+    ctx.fillStyle = PAL.towerMid;
+    ctx.fillRect(x+bx, top-bh, bw, bh);
+    ctx.fillStyle = PAL.towerSun;
+    ctx.fillRect(x+bx, top-bh, 1, bh);
+  }
+
+  /* shaft */
+  ctx.fillStyle = PAL.towerMid;
+  ctx.fillRect(x, top, w, VIEW_H-top);
+  ctx.fillStyle = PAL.towerSun;   ctx.fillRect(x, top, 2, VIEW_H-top);      // lit west face
+  ctx.fillStyle = PAL.towerShade; ctx.fillRect(x+w-2, top, 2, VIEW_H-top);  // shaded east
+
+  /* floors: glazing band + balcony slab with a serrated under-edge */
+  for(let fy = top+4; fy < VIEW_H-2; fy += 5){
+    ctx.fillStyle = PAL.glazeFar;
+    ctx.fillRect(x+2, fy, w-4, 2);
+    ctx.fillStyle = PAL.slabLight;
+    ctx.fillRect(x+1, fy+2, w-2, 2);
+    /* the sawtooth: notch the slab's underside every other pixel */
+    ctx.fillStyle = PAL.towerShade;
+    for(let fx = 1 + (seed%2); fx < w-1; fx += 2)
+      ctx.fillRect(x+fx, fy+3, 1, 1);
+  }
+
+  /* balcony prow zigzag down both corners */
+  ctx.fillStyle = PAL.towerShade;
+  for(let fy = top+4; fy < VIEW_H-2; fy += 5) ctx.fillRect(x, fy+2, 1, 1);
+  ctx.fillStyle = PAL.towerSun;
+  for(let fy = top+6; fy < VIEW_H-2; fy += 5) ctx.fillRect(x+w-1, fy, 1, 1);
+
+  /* flared base plinth */
+  const baseY = VIEW_H - 26;
+  ctx.fillStyle = PAL.towerShade;
+  ctx.fillRect(x-2, baseY, w+4, 3);
+  ctx.fillStyle = PAL.towerMid;
+  ctx.fillRect(x-3, baseY+3, w+6, VIEW_H-baseY-3);
+}
+
+/* The long terrace block: white barrel-vault roofline over pale slab
+   bands and dark glazing, greenery spilling over. Tiles horizontally
+   with its own parallax so it always fills the middle distance. */
+const BLOCK_TOP = 96, BLOCK_CYCLE = 48;
+function drawTerraceBlock(cx){
+  const off = -((cx*0.42) % BLOCK_CYCLE);
+
+  /* body */
+  ctx.fillStyle = PAL.towerMid;
+  ctx.fillRect(0, BLOCK_TOP+7, VIEW_W, VIEW_H-BLOCK_TOP-7);
+
+  for(let x = off - BLOCK_CYCLE; x < VIEW_W + BLOCK_CYCLE; x += BLOCK_CYCLE){
+    /* two barrel vaults per cycle */
+    for(const vx of [12, 36]){
+      ctx.fillStyle = PAL.vault;
+      ctx.beginPath();
+      ctx.arc(x+vx, BLOCK_TOP+8, 9, Math.PI, 0);
+      ctx.fill();
+      ctx.fillStyle = PAL.vaultShade;
+      ctx.fillRect(x+vx+5, BLOCK_TOP+2, 2, 6);       // shaded flank of the vault
+    }
+    /* party-wall fin between vault pairs */
+    ctx.fillStyle = PAL.towerShade;
+    ctx.fillRect(x, BLOCK_TOP-2, 2, 10);
+  }
+
+  /* floors: slab lip, glazing, planting spilling over each lip */
+  for(let fy = BLOCK_TOP+10; fy < VIEW_H; fy += 9){
+    ctx.fillStyle = PAL.slabLight;
+    ctx.fillRect(0, fy, VIEW_W, 2);
+    ctx.fillStyle = PAL.glaze;
+    ctx.fillRect(0, fy+2, VIEW_W, 4);
+    for(let x = off - BLOCK_CYCLE; x < VIEW_W + BLOCK_CYCLE; x += BLOCK_CYCLE){
+      ctx.fillStyle = PAL.towerShade;                 // party walls divide the flats
+      ctx.fillRect(x, fy, 2, 9);
+      /* greenery + the odd bloom trailing off the slab */
+      for(let gx = 5; gx < BLOCK_CYCLE-4; gx += 7){
+        const h = ((gx*13 + fy*7)>>0) % 11;
+        if(h < 5){
+          ctx.fillStyle = h%2 ? PAL.green : PAL.greenDark;
+          ctx.fillRect(x+gx, fy+1, 3, 2);
+        }else if(h === 6){
+          ctx.fillStyle = FLOWERS[(gx+fy)%FLOWERS.length];
+          ctx.fillRect(x+gx, fy+1, 2, 2);
+        }
       }
-    }else{
-      for(let fx = 3; fx < w-3; fx += 5)
-        if(((fx*7 + fy*13 + seed*31)%17) < 5){ ctx.fillStyle = '#d8a0b4'; ctx.fillRect(x+fx, fy+5, 2, 1); }
     }
   }
 }
@@ -153,8 +268,8 @@ function drawTower(x, top, w, far, seed){
 function drawPlanter(tx, ty, cx, cy){
   const x = tx*TILE - cx, base = ty*TILE - cy;
   if(x < -20 || x > VIEW_W+20) return;
-  ctx.fillStyle = '#7e848c'; ctx.fillRect(x-2, base-4, 12, 4);   // concrete trough
-  ctx.fillStyle = '#9aa0a8'; ctx.fillRect(x-2, base-4, 12, 1);
+  ctx.fillStyle = PAL.brickDark;  ctx.fillRect(x-2, base-4, 12, 4);   // brick trough
+  ctx.fillStyle = PAL.brickLight; ctx.fillRect(x-2, base-4, 12, 1);
   const F = ['#e0568a','#d94f4f','#f2a0c0','#6f8f5a','#c2477e','#6f8f5a'];
   for(let i = 0; i < 6; i++){ ctx.fillStyle = F[(i+tx)%F.length]; ctx.fillRect(x-1+i*2, base-6-((i+tx)%2), 2, 2); }
 }
