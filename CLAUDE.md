@@ -135,33 +135,41 @@ and JS module split — is retired; don't reference or resurrect it.
 - Preview: `.claude/launch.json` runs `python3 -m http.server` — use the
   editor preview, never a Bash-launched server.
 
-## 7. State of the build (2026-09-06, night)
+## 7. State of the build (2026-09-06, end of session — SHIPPED)
 
-- **World**: `src/world.js` — E-chain estate-route → arts-centre →
-  conservatory, plus portal rooms (Cinema 1 screen → mothlight → back)
-  and `goTo(id, P, at)`. Rooms may carry `abilities` grants,
-  `interiors`/`doors`/`lamps`/`houses` metadata.
-- **Key economy**: tower-roof key ('K', estate) unlocks the Wallside
-  door ('D' tile → flat.html, the 3D interlude); the Arts Centre key
-  (found in the flat's kitchen drawer, persisted via localStorage
-  `barbican.keys.artsCentre`) unlocks the estate's stage-door exit.
-  Fresh runs clear both keys; `?at`/`?level` preserve them.
-- **Intro**: `src/intro.js` cinematic plays on fresh loads; any key
-  skips; dev params bypass.
-- **Tile legend adds**: `D` house door (non-solid, gated), `*` dash
-  pickup, `E` exit, `w` shallow water (wading), `V` vine platform,
-  `F` fly bar / foliage dome, `^` cactus (kills), `K` key.
-- **Levels** (all generated; edit the tools/gen-*.mjs, never the output):
-  estate-route 452×56 (gen-estate), arts-centre 360×56 (gen-artscentre),
-  conservatory 336×60 (gen-conservatory), mothlight 184×68 (gen-mothlight).
-- **Renderer dispatch** in `src/render.js`: mothlight full-takeover;
-  `interior: true` rooms → `src/interior.js`; `backdrop: 'conservatory'`
-  → `src/conservatory.js`; estate east of col 272 → `src/ponds.js`
-  (Ghibli pass); tower interior volumes fade via `interiors` rects.
-- **Verifier**: ~100 proofs across all four levels + mechanics + the key
-  economy + the cinema loop. `node tools/verify-physics.js` must exit 0
-  before any commit touching physics, levels, or generators. Bots must
-  WALK entry paths (placed-inside-only proofs have missed real blockers
-  twice).
-- **In flight**: The Head Gardener boss (conservatory finale) via
-  subagent worktree.
+Everything below is merged on `main`, pushed to
+https://github.com/andy159/barbican, and proven by the verifier.
+
+- **The complete loop**: anime intro (src/intro.js, skippable) → estate-route
+  (trenches, Gilbert Bridge, service shaft + secret, Speed Highwalk, the
+  three-stage CROMWELL TOWER interior climb to the roof key, central-ponds
+  finale with wading + island hopping) → Wallside house door ('D', needs the
+  roof key) → **flat.html**, the first-person WebGL Type 20 flat (furnished,
+  Finnish paintings, openable drawers, the Arts Centre key in galley drawer 2
+  with glint + note) → back out → stage-door exit (needs the arts key) →
+  arts-centre (flytower, dash pickup '*', Martini Bar + cellar secret,
+  Cinema 1 whose screen portals into **mothlight**, the dodge-the-moths dream,
+  tear returns you to your seat) → conservatory (HK-dark glasshouse, koi,
+  Arid House) → **THE HEAD GARDENER** boss (src/gardener.js; dash through the
+  golden vent node ×3) → members'-bar outro (src/outro.js: Andy, Minttu, the
+  Line drawn complete) → loops to a fresh intro.
+- **Systems**: world graph + portals + per-room ability grants (src/world.js);
+  bench checkpoints (glowing; tutorial sign at the first); key economy
+  persisted across the 2D↔3D page hop via localStorage (cleared on fresh
+  runs); interiors/doors/lamps/houses room metadata; room `tick` hook (moths,
+  boss).
+- **Everything else in §7's previous revision still holds** (tile legend,
+  generated levels via tools/gen-*.mjs, renderer dispatch map, the
+  bots-must-WALK-entry-paths verifier rule). ~110 proofs; `node
+  tools/verify-physics.js` must exit 0 before committing.
+- **Where a future session could pick up** (the original roadmap, §4):
+  Phase 3 remainders — the Tab MAP SCREEN styled on estate signage (research
+  says: fill rooms only where the Line was walked), a real SAVE system
+  (localStorage + export string) to replace reload-resets; Phase 2's last
+  ability, the CRADLE GRAPPLE ('A' anchors); Yellow Line integrity states
+  (true/forked/faded) as data; hazards (Phase 5); sound (WebAudio, per-zone
+  ambience per docs/); title/pause screens; deploy to GitHub Pages / itch.io.
+- **Conventions for agents**: subagent worktrees own new files + minimal
+  shared-file diffs; the coordinator merges by hand and keeps the verifier
+  green; QA servers on ports 8139+; Chrome caches ES modules hard — hard
+  reload after merges.
