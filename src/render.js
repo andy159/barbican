@@ -93,10 +93,27 @@ export function render(P, alpha, debugOn, fps){
   for(let ty = y0; ty <= y1; ty++){
     for(let tx = x0; tx <= x1; tx++){
       const t = tileAt(tx,ty);
-      if(t !== '#' && t !== '=' && t !== 'H') continue;
+      if(t === ' ' || t === '' || t === 'P') continue;
       const sx = tx*TILE - cx, sy = ty*TILE - cy;
       const topExposed = !solidAt(tx,ty-1);
-      if(t === 'H'){
+      if(t === 'W'){
+        /* lake water: deep teal, lit surface line, faint ripple bands */
+        ctx.fillStyle = '#3f6d66'; ctx.fillRect(sx,sy,TILE,TILE);
+        if(tileAt(tx,ty-1) !== 'W'){
+          ctx.fillStyle = '#8fc0b4'; ctx.fillRect(sx,sy,TILE,1);
+          ctx.fillStyle = '#5b8d82'; ctx.fillRect(sx + (tx%3)*2, sy+2, 3, 1);
+        }else if((tx*7 + ty*13) % 5 === 0){
+          ctx.fillStyle = '#4a7a71'; ctx.fillRect(sx+2, sy+3, 4, 1);
+        }
+      }else if(t === 'B'){
+        /* concrete bench (checkpoint): slab on two feet */
+        ctx.fillStyle = '#b3aca0'; ctx.fillRect(sx,   sy+3, 8, 2);
+        ctx.fillStyle = '#8f887c'; ctx.fillRect(sx+1, sy+5, 1, 3);
+        ctx.fillRect(sx+6, sy+5, 1, 3);
+        if(P.checkpoint && Math.floor(P.checkpoint.x/TILE) === tx){
+          ctx.fillStyle = '#f7c623'; ctx.fillRect(sx+3, sy+2, 2, 1);   // resting mark
+        }
+      }else if(t === 'H'){
         /* plywood hoarding: warm boards, plank joints, a pasted notice */
         ctx.fillStyle = '#c09055';  ctx.fillRect(sx,sy,TILE,TILE);
         ctx.fillStyle = '#9a7040';  ctx.fillRect(sx,sy+2,TILE,1);
@@ -106,14 +123,29 @@ export function render(P, alpha, debugOn, fps){
           ctx.fillStyle = '#f2efe6'; ctx.fillRect(sx+3,sy+3,3,4);   // notice bill
           ctx.fillStyle = '#d94f4f'; ctx.fillRect(sx+4,sy+4,1,1);
         }
-      }else if(t === '=' && topExposed){
+      }else if((t === '=' || t === '-') && topExposed){
         /* walkway: brick paving with staggered joints */
         ctx.fillStyle = PAL.brick;      ctx.fillRect(sx,sy,TILE,TILE);
         ctx.fillStyle = PAL.brickDark;  ctx.fillRect(sx,sy+3,TILE,1);
         ctx.fillRect(sx + (tx%2 ? 2 : 5), sy, 1, 3);
         ctx.fillRect(sx + (tx%2 ? 6 : 1), sy+4, 1, 4);
         ctx.fillStyle = PAL.brickLight; ctx.fillRect(sx,sy+7,TILE,1);
-        ctx.fillStyle = '#f7c623';      ctx.fillRect(sx,sy,TILE,1);   // the Yellow Line
+        if(t === '='){
+          ctx.fillStyle = '#f7c623';    ctx.fillRect(sx,sy,TILE,1);   // the Yellow Line
+        }else{
+          /* scuffed line: worn fragments — this marks something */
+          ctx.fillStyle = '#c8a94e';
+          ctx.fillRect(sx + (tx%2 ? 1 : 4), sy, 2, 1);
+          ctx.fillRect(sx + (tx%2 ? 5 : 0), sy, 1, 1);
+        }
+        /* blue-painted railing behind the walkway edge */
+        const leftCont  = tileAt(tx-1,ty) === '=' || tileAt(tx-1,ty) === '-';
+        const rightCont = tileAt(tx+1,ty) === '=' || tileAt(tx+1,ty) === '-';
+        if(leftCont || rightCont){
+          ctx.fillStyle = 'rgba(55,88,138,0.75)';
+          ctx.fillRect(sx, sy-4, TILE, 1);                       // top rail
+          if(tx % 2 === 0) ctx.fillRect(sx+3, sy-4, 1, 4);       // post
+        }
       }else{
         /* board-marked, pick-hammered concrete */
         ctx.fillStyle = PAL.conc;     ctx.fillRect(sx,sy,TILE,TILE);
@@ -331,6 +363,7 @@ function drawPlanter(tx, ty, cx, cy){
 }
 
 function signAt(x, y, text){
-  ctx.fillStyle = '#232c4a'; ctx.fillRect(x-2,y-9,58,12);
+  const w = text.length*4.3 + 8;                 // estate wayfinding plate
+  ctx.fillStyle = '#232c4a'; ctx.fillRect(x-2,y-9,w,12);
   ctx.fillStyle = '#ffd95e'; ctx.font = '7px monospace'; ctx.fillText(text,x+2,y);
 }

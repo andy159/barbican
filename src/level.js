@@ -30,7 +30,17 @@ export function tileAt(tx, ty){
 
 export function solidAt(tx, ty){
   const t = tileAt(tx, ty);
-  return t === '#' || t === '=' || t === 'H';
+  return t === '#' || t === '=' || t === 'H' || t === '-';
+}
+
+/* does the AABB overlap any tile of the given character? (water, benches) */
+export function overlapsChar(x, y, w, h, ch){
+  const x0 = Math.floor(x/TILE), x1 = Math.floor((x+w-0.01)/TILE);
+  const y0 = Math.floor(y/TILE), y1 = Math.floor((y+h-0.01)/TILE);
+  for(let ty = y0; ty <= y1; ty++)
+    for(let tx = x0; tx <= x1; tx++)
+      if(tileAt(tx, ty) === ch) return true;
+  return false;
 }
 
 function breakTile(tx, ty){

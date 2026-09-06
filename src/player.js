@@ -21,12 +21,13 @@ export function makePlayer(){
     trail: [],                                   // dash afterimages
     sx: 1, sy: 1,                                // squash/stretch scales
     deaths: 0, flash: 0,
-    abilities: { wallJump: true, dash: true, barge: true, grapple: false },
+    checkpoint: { x: level.spawn.x, y: level.spawn.y },   // last bench rested at
+    abilities: { wallJump: true, dash: false, barge: false, grapple: false },
   };
 }
 
 export function respawn(P){
-  P.x = level.spawn.x; P.y = level.spawn.y; P.px = P.x; P.py = P.y;
+  P.x = P.checkpoint.x; P.y = P.checkpoint.y; P.px = P.x; P.py = P.y;
   P.vx = 0; P.vy = 0; P.sx = 1; P.sy = 1; P.grounded = false;
   P.wallCoyote = 0; P.lastWallDir = 0; P.inputLock = 0;
   P.dashLeft = 0; P.dashes = 1; P.freeze = 0; P.trail.length = 0;
@@ -243,6 +244,12 @@ function groundedUpdate(P, squashScale){
 }
 
 function pitCheck(P){
-  if(P.y > level.ROOM_H*TILE + 24){ P.deaths++; respawn(P); }
+  /* resting at a bench sets the respawn point */
+  const bx = Math.floor((P.x + P.w/2)/TILE), by = Math.floor((P.y + P.h/2)/TILE);
+  if(level.tileAt(bx, by) === 'B')
+    P.checkpoint = { x: bx*TILE, y: (by+1)*TILE - P.h };
+
+  const drowned = level.overlapsChar(P.x, P.y, P.w, P.h, 'W');
+  if(drowned || P.y > level.ROOM_H*TILE + 24){ P.deaths++; respawn(P); }
   if(P.flash > 0) P.flash--;
 }
