@@ -60,7 +60,9 @@ for(let r = 3; r <= 27; r += 3) set(213,213,r,r,'<');     // balcony prows on th
 set(214,243,33,55,'T');                     // tower mass below deck
 set(216,235,32,32,'=');                     // walkable lobby floor
 set(214,215,32,32,'T', true); set(236,243,32,32,'T', true); // wall feet
-set(222,223,16,29,'T');                     // inner wall (door rows 30-31)
+set(216,221,2,27,'T');                      // upper body over the lobby
+set(222,223,2,29,'T');                      // inner wall (door rows 30-31)
+set(224,231,2,16,'T');                      // upper body over shaft A + mezzanine
 set(228,229,25,31,'T');                     // shaft A east wall (floor to mezzanine)
 set(228,233,24,24,'#');                     // mezzanine slab (shaft A exits through 224-227)
 set(232,233,8,23,'T');                      // shaft B west wall on the mezzanine
