@@ -10,9 +10,9 @@ let padOsc = [], padGain = null, purr = null;
 /* mood definitions: root (Hz), chord sets (semitones), melody scale,
    pace (avg seconds between melody notes), brightness (lowpass Hz) */
 const MOODS = {
-  daylight:    { root: 220.00, chords: [[0,4,7,11],[5,9,12,16],[7,11,14,17],[2,5,9,12]],
-                 scale: [0,2,4,7,9,12,14,16], pace: 1.6, lp: 2300,
-                 padGain: 0.048, melGain: 0.068, noteDur: 1.0, octUp: 0.45 },
+  daylight:    { root: 220.00, chords: [[0,4,7,11],[5,9,12,16],[7,11,14,17],[2,5,9,14]],
+                 scale: [0,2,4,7,9,12,14,16], pace: 2.4, lp: 1900,
+                 padGain: 0.048, melGain: 0.064, noteDur: 1.4, octUp: 0.35 },
   ponds:       { root: 220.00, chords: [[0,4,7,11],[5,9,12,16],[9,12,16,19],[7,11,14,17]],
                  scale: [4,7,9,12,14,16,19], pace: 2.0, lp: 2400,
                  padGain: 0.045, melGain: 0.065, noteDur: 2.2 },
