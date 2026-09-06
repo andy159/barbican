@@ -38,6 +38,9 @@ export const TUNING = {
   bargeSpeed:    2.4,    // px/frame during the barge
   bargeShake:    8,      // screen-shake frames when a hoarding breaks
 
+  wadeSpeedMult: 0.5,    // max run speed multiplier while in shallow water
+  wadeJumpMult:  0.85,   // jump velocity multiplier when launching from water
+
   squashLand:    0.55,   // scaleY on hard landing (lower = squashier)
   squashJump:    1.28,   // scaleY on jump
   squashRecover: 0.14,   // lerp speed back to normal

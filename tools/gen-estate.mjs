@@ -1,8 +1,10 @@
-// Generates the estate route level (360x56) and writes levels/highwalk.js.
-// v2: harder platforming, full-height Cromwell Tower with staged climb.
+// Generates the estate route level (452x56) and writes levels/highwalk.js.
+// v3: finale rebuilt as the CENTRAL PONDS — waist-deep basin ('w', wading),
+// planted brick islands with solid foliage domes ('F'), fountain terrace,
+// cascade-step exit. v2: harder platforming, full-height Cromwell climb.
 import { writeFileSync } from 'node:fs';
 
-const W = 360, H = 56;
+const W = 452, H = 56;
 const g = Array.from({length: H}, () => Array(W).fill(' '));
 
 function set(x0, x1, y0, y1, ch, allow = false){
@@ -78,7 +80,7 @@ set(230,230,23,23,'B');                     // bench: LEVEL 15
 set(224,224,5,5,'B');                       // bench: roof
 set(238,238,5,5,'K');                       // the flat key
 
-/* ---- S6: terrace roof + descent + lakeside (cols 252-359) ---- */
+/* ---- S6: terrace roof + descent (cols 252-322) ---- */
 set(248,274,20,20,'=');  set(248,274,21,55,'T');   // terrace-block roof on its mass
 set(256,256,19,19,'#'); set(260,260,19,19,'#'); set(264,264,19,19,'#'); set(268,268,19,19,'#'); // vault crests
 set(272,272,19,19,'B');                     // bench: terrace roof
@@ -86,18 +88,60 @@ for(const [a,b,r] of [[278,282,24],[286,290,28],[294,298,32],[302,306,36],[310,3
   set(a,b,r,r,'=');
   set(a,b,r+1,r+1,'#');
 }
-set(326,335,48,48,'='); set(326,335,49,51,'#');  // lakeside terrace
-set(340,341,48,48,'='); set(340,341,49,49,'#');  // stepping stones
-set(346,347,48,48,'='); set(346,347,49,49,'#');
-set(351,359,48,48,'='); set(351,359,49,51,'#');  // way out
-set(358,359,46,47,'E');                     // exit -> the Arts Centre
-set(328,328,47,47,'B');                     // bench: lakeside
-set(276,359,52,55,'W');                     // lake basin under descent + stones
+/* ---- S6b: the CENTRAL PONDS (cols 275-451) ----
+   Waist-deep basin: 'w' (row 53) over a brick bed (rows 54-55) — wading,
+   not death. Planted brick islands rise from the bed; their walkable rims
+   are plain '#' (the Yellow Line stops dead at the water's edge and only
+   resumes on the far bank). 'F' = solid foliage dome you must hop over.
+   Recovery steps (top row 52) let waders climb back out — mostly on the
+   WEST side of each pocket, so a missed jump means a slow wade + retry. */
+
+/* arrival stairs: below the descent gap, up onto the terrace */
+set(323,323,52,53,'#'); set(324,325,50,53,'#');
+
+/* fountain terrace: red brick; the Yellow Line ends at col 352 */
+set(326,352,48,48,'='); set(326,352,49,53,'#');
+set(328,328,47,47,'B');                     // bench: before the islands
+set(353,353,50,53,'#'); set(354,354,52,53,'#');  // linked steps to the water
+
+/* the planted islands: [x0, x1, rim row, dome layers [row,dx0,dx1]] */
+const ISLANDS = [
+  [359,365,50, [[49,361,363]]],                    // I1: gentle opener
+  [370,377,48, [[47,372,375],[46,373,374]]],       // I2: high rim, tall dome
+  [383,390,51, [[50,385,387]]],                    // I3: low, near the water
+  [395,402,49, [[48,397,400],[47,398,399]]],       // I4: tall dome again
+  [409,414,50, [[49,411,412]]],                    // I5: the 6-gap landing
+  [419,426,51, [[50,421,424],[49,422,423]]],       // I6: low rim, wide dome
+  [431,434,50, []],                                // I7: bare brick islet
+];
+for(const [x0,x1,rim,dome] of ISLANDS){
+  set(x0,x1,rim,53,'#');                    // brick mass down to the bed
+  for(const [y,dx0,dx1] of dome) set(dx0,dx1,y,y,'F');
+}
+
+/* wader recovery steps (rows 52-53 — a wade-jump can mount them) */
+for(const x of [366,382,391,403,415,427,436]) set(x,x,52,53,'#');
+
+/* the cascade: the whole lake pours over these steps — climb out east */
+set(437,438,51,53,'#'); set(439,440,49,53,'#'); set(441,442,47,53,'#');
+
+/* way out: the Yellow Line resumes on the far bank */
+set(443,451,46,46,'='); set(443,451,47,53,'#');
+set(450,451,44,45,'E');                     // exit -> the Arts Centre
+set(445,445,45,45,'B');                     // bench: after the islands
+
+/* the basin: brick bed, then waist-deep water in every open column */
+set(275,451,54,55,'#');
+for(let x = 275; x <= 451; x++) if(g[53][x] === ' ') g[53][x] = 'w';
 
 const rows = g.map(r => r.join('').replace(/ +$/,''));
 
 const planters = [[13,48],[31,48],[45,48],[74,48],[97,48],[136,52],[138,52],
-                  [162,32],[196,32],[207,32],[218,32],[231,23],[266,20],[331,48]];
+                  [162,32],[196,32],[207,32],[218,32],[231,23],[266,20],
+                  [330,48],[346,48],[449,46]];
+/* the eight Lakeside Terrace fountains: [tx, ty, kind 0=recessed 1=edge] */
+const fountains = [[332,48,0],[336,48,0],[340,48,0],[344,48,0],[348,48,0],
+                   [351,48,1],[352,48,1],[353,50,1]];
 const signs = [
   [10,46,'FROBISHER WALK →'],
   [20,52,'WALL JUMP ↑'],
@@ -114,17 +158,20 @@ const signs = [
   [222,4,'LEVEL 43 · ROOF'],
   
   [327,45,'LAKESIDE TERRACE'],
-  [353,46,'WAY OUT →'],
+  [341,45,'CENTRAL PONDS →'],
+  [447,44,'WAY OUT →'],
 ];
 
 const out = `/* The estate route — generated by tools-side script, still plain ASCII.
-   '#' concrete, '=' walkway + Yellow Line, '-' scuffed line (secrets),
+   '#' concrete/brick, '=' walkway + Yellow Line, '-' scuffed line (secrets),
    'T' tower facade, '<' balcony prow, 'P' spawn, 'B' bench (checkpoint),
-   'W' water (hazard), 'H' hoarding.
+   'W' deep water (lethal), 'w' waist-deep pond water (wading — slow, safe),
+   'F' foliage dome (solid — hop over it), 'H' hoarding.
    Route: podium walk (wall-jump trenches) -> Gilbert Bridge (island hop)
    -> service shaft climb + secret alcove -> Speed Highwalk (pillar caps)
    -> Cromwell Tower (lobby -> shaft A -> mezzanine bench -> shaft B ->
-   roof) -> terrace roofs -> descent -> lakeside stones -> way out.
+   roof) -> terrace roofs -> descent -> CENTRAL PONDS: fountain terrace,
+   seven planted brick islands over waist-deep water, cascade-step exit.
    Run tools/verify-physics.js after editing. */
 export const HIGHWALK = {
   id: 'estate-route',
@@ -132,9 +179,11 @@ export const HIGHWALK = {
 ${rows.map(r => JSON.stringify(r) + ',').join('\n')}
   ],
   planters: ${JSON.stringify(planters)},
+  fountains: ${JSON.stringify(fountains)},
   interiors: [[214,7,243,31]],
   lamps: [[214,29],[229,23],[221,15],[221,7]],
   doors: [[214,30,215,31]],
+  marks: [[225,29,'u'],[227,22,'r'],[234,20,'u'],[239,14,'l'],[228,14,'l'],[218,11,'u']],
   signs: [
 ${signs.map(([tx,ty,text]) => `    { tx: ${tx}, ty: ${ty}, text: ${JSON.stringify(text)} },`).join('\n')}
   ],

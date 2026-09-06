@@ -15,7 +15,7 @@ export function makePlayer(){
     grounded: false, facing: 1,
     coyote: 0, buffer: 0, cutDone: true,
     prevJump: false,
-    wallCoyote: 0, lastWallDir: 0, inputLock: 0,
+    wallCoyote: 0, lastWallDir: 0, inputLock: 0, wading: false,
     dashLeft: 0, dashVX: 0, dashVY: 0, dashes: 1, freeze: 0, prevDash: false,
     bargeWind: 0, bargeLeft: 0, prevBarge: false, shake: 0,
     trail: [],                                   // dash afterimages
@@ -82,6 +82,10 @@ export function step(P, ctrl){
     return;
   }
 
+  /* --- waist-deep pond water ('w'): wading is slow, jumps are soggy --- */
+  const wading = level.overlapsChar(P.x, P.y, P.w, P.h, 'w');
+  P.wading = wading;
+
   /* --- horizontal intent (ignored briefly after a wall jump) --- */
   const dir = (ctrl.right ? 1 : 0) - (ctrl.left ? 1 : 0);
   if(P.inputLock > 0){
@@ -101,6 +105,8 @@ export function step(P, ctrl){
     const f = P.grounded ? T.friction : T.airDrag;
     if(Math.abs(P.vx) <= f) P.vx = 0; else P.vx -= f*Math.sign(P.vx);
   }
+  if(wading && Math.abs(P.vx) > T.maxRun*T.wadeSpeedMult)
+    P.vx = T.maxRun*T.wadeSpeedMult*Math.sign(P.vx);
 
   /* --- wall contact (airborne, flush against a solid) --- */
   let wallDir = 0;
@@ -114,7 +120,7 @@ export function step(P, ctrl){
   P.prevJump = ctrl.jump;
 
   if(P.buffer > 0 && (P.grounded || P.coyote > 0)){
-    P.vy = -T.jumpVelocity;
+    P.vy = -T.jumpVelocity*(wading ? T.wadeJumpMult : 1);
     P.buffer = 0; P.coyote = 0;
     P.grounded = false; P.cutDone = false;
     P.sy = T.squashJump; P.sx = 2 - T.squashJump;   // stretch

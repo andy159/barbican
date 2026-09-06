@@ -12,6 +12,7 @@ import * as level from './level.js';
 import { cam, VIEW_W, VIEW_H } from './camera.js';
 import { interiorFrame, drawInteriorBackdrop, drawInteriorTile,
          drawInteriorProps, drawInteriorOverlay } from './interior.js';
+import * as ponds from './ponds.js';
 
 let ctx = null;
 export function bindCanvas(canvas){
@@ -100,6 +101,23 @@ function drawInterior(cx, cy, alpha){
       }
     }
   }
+  /* painted yellow wayfinding chevrons — the Line's language, indoors */
+  for(const [mtx, mty, dir] of (level.currentRoom().marks || [])){
+    const mx = mtx*TILE - cx, my = mty*TILE - cy;
+    if(mx < -12 || mx > VIEW_W+12) continue;
+    const blink = 0.75 + Math.sin(frame*0.06 + mtx)*0.25;
+    ctx.fillStyle = `rgba(247,198,35,${blink})`;
+    if(dir === 'u'){
+      ctx.fillRect(mx+3, my,   2, 2); ctx.fillRect(mx+1, my+2, 2, 2);
+      ctx.fillRect(mx+5, my+2, 2, 2);
+    }else if(dir === 'r'){
+      ctx.fillRect(mx+4, my+2, 2, 2); ctx.fillRect(mx+2, my,   2, 2);
+      ctx.fillRect(mx+2, my+4, 2, 2);
+    }else{
+      ctx.fillRect(mx+1, my+2, 2, 2); ctx.fillRect(mx+3, my,   2, 2);
+      ctx.fillRect(mx+3, my+4, 2, 2);
+    }
+  }
   ctx.globalAlpha = 1;
   ctx.restore();
 }
@@ -148,6 +166,11 @@ function backdropDaylight(P, cx, cy){
   insideT += (wantInside - insideT)*0.15;
   drawInterior(cx, cy, insideT);
 
+  /* the CENTRAL PONDS (finale): region-gated Ghibli pass, see ponds.js */
+  const pondsOn = level.currentRoom().id === 'estate-route' &&
+                  cx + VIEW_W >= 272*TILE;
+  if(pondsOn) ponds.backdrop(ctx, cx, cy, frame, P);
+
   /* drifting petals (not indoors) */
   if(insideT < 0.99){
     ctx.globalAlpha = 1 - insideT;
@@ -160,6 +183,8 @@ function backdropDaylight(P, cx, cy){
 }
 
 function drawScene(P, alpha, cx, cy, interiorRoom, debugOn, fps){
+  const pondsOn = !interiorRoom && level.currentRoom().id === 'estate-route' &&
+                  cx + VIEW_W >= 272*TILE;
   /* tiles — only the visible range */
   const x0 = Math.floor(cx/TILE), x1 = Math.floor((cx+VIEW_W)/TILE);
   const y0 = Math.floor(cy/TILE), y1 = Math.floor((cy+VIEW_H)/TILE);
@@ -171,6 +196,7 @@ function drawScene(P, alpha, cx, cy, interiorRoom, debugOn, fps){
       if(empty && !inRect) continue;
       const sx = tx*TILE - cx, sy = ty*TILE - cy;
       if(interiorRoom && !empty){ drawInteriorTile(ctx, t, tx, ty, sx, sy); continue; }
+      if(t === 'w' || t === 'F') continue;         // drawn by the ponds pass
       const topExposed = !solidAt(tx,ty-1);
       if(empty){
         /* nothing to draw — the facade overlay below closes the skin */
@@ -332,6 +358,8 @@ function drawScene(P, alpha, cx, cy, interiorRoom, debugOn, fps){
   /* interior props: curtain, projector, the Mothlight screen, plates */
   if(interiorRoom) drawInteriorProps(ctx, cx, cy);
 
+  if(pondsOn) ponds.mid(ctx, cx, cy, frame);
+
   /* dash afterimages, oldest faintest */
   for(const t of P.trail){
     ctx.globalAlpha = Math.max(0, t.life/28);
@@ -349,6 +377,7 @@ function drawScene(P, alpha, cx, cy, interiorRoom, debugOn, fps){
     /* beam, gloom vignette, pickup card */
     drawInteriorOverlay(ctx, cx, cy, P);
   }else{
+    if(pondsOn) ponds.overlay(ctx, cx, cy, frame, P);
     /* bright atmospheric haze at the base (fades away in the tower) */
     ctx.globalAlpha = 1 - insideT;
     const haze = ctx.createLinearGradient(0,VIEW_H-32,0,VIEW_H);

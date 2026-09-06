@@ -173,11 +173,28 @@ function placeOnRoute(x, surfaceRow, abilities = {}){
 /* structural sanity of the generated level */
 {
   level.loadRoom(HIGHWALK);
-  const benches = [[7,47],[105,47],[190,31],[230,23],[224,5],[272,19],[328,47]];
-  check(benches.every(([x,y]) => level.tileAt(x,y) === 'B'), 'all seven benches present');
+  const benches = [[7,47],[105,47],[190,31],[230,23],[224,5],[272,19],[328,47],[445,45]];
+  check(benches.every(([x,y]) => level.tileAt(x,y) === 'B'), 'all eight benches present');
   check(level.tileAt(238,5) === 'K', 'the flat key waits on the roof');
   check(level.tileAt(130,48) === '-' && level.tileAt(133,48) === '-', 'scuffed line at secret');
-  check(level.tileAt(70,53) === 'W' && level.tileAt(330,52) === 'W', 'water under bridge and stones');
+  check(level.tileAt(70,53) === 'W', 'deep water under Gilbert Bridge');
+  /* the ponds: waist-deep 'w' basin, no lethal 'W' anywhere east of 275 */
+  check(level.tileAt(300,53) === 'w' && level.tileAt(405,53) === 'w', 'shallow water fills the basin');
+  check(level.tileAt(300,54) === '#' && level.tileAt(405,54) === '#', 'brick bed under the basin');
+  let lethalInBasin = false;
+  for(let x = 275; x <= 451; x++) for(let y = 0; y < 56; y++)
+    if(level.tileAt(x,y) === 'W') lethalInBasin = true;
+  check(!lethalInBasin, 'no lethal water in the ponds basin');
+  /* the Yellow Line stops dead at the water and resumes on the far bank */
+  let lineOverWater = false;
+  for(let x = 353; x <= 442; x++) for(let y = 0; y < 56; y++)
+    if(level.tileAt(x,y) === '=') lineOverWater = true;
+  check(!lineOverWater, 'no Yellow Line across the ponds');
+  check(level.tileAt(352,48) === '=' && level.tileAt(353,48) === ' ', 'line stops dead at the water');
+  check(level.tileAt(443,46) === '=', 'line resumes on the far bank');
+  check(level.tileAt(359,50) === '#' && level.tileAt(409,50) === '#', 'island rims are plain brick');
+  check(level.solidAt(373,46) && level.solidAt(398,47), 'foliage domes are solid');
+  check((HIGHWALK.fountains || []).length === 8, 'the eight terrace fountains are placed');
   check(!level.solidAt(122,46) && !level.solidAt(122,47), 'service shaft east door');
   check(!level.solidAt(214,30) && !level.solidAt(214,31), 'tower west door');
   check(level.tileAt(213,27) === '<' && level.tileAt(213,3) === '<', 'balcony prows on the tower face');
@@ -275,9 +292,22 @@ const gaps = [
   ['cap -> deck (4)',       () => runJump(175*TILE, 32, 177*TILE, 181*TILE, 32)],
   ['stub hop -> terrace',   () => runJump(238*TILE, 6, 242*TILE, 249*TILE, 20, 400)],
   ['descent walk-off',      () => walkOff(271*TILE, 20, 278*TILE, 24)],
-  ['terrace -> stone (4)',  () => runJump(330*TILE, 48, 336*TILE, 340*TILE, 48, 300, 12)],
-  ['stone -> stone (4)',    () => runJump(340*TILE, 48, 342*TILE, 346*TILE, 48)],
-  ['stone -> way out (3)',  () => runJump(346*TILE, 48, 348*TILE, 351*TILE, 48)],
+  /* --- the CENTRAL PONDS: every island hop, domes included --- */
+  ['descent -> terrace',    () => runJump(318*TILE, 44, 323*TILE, 326*TILE, 48)],
+  ['terrace -> I1 (6)',     () => runJump(340*TILE, 48, 353*TILE, 359*TILE, 50)],
+  ['I1 dome hop',           () => runJump(359*TILE, 50, 361*TILE, 364*TILE, 50, 300, 8)],
+  ['I1 -> I2 (4, rise 2)',  () => runJump(364*TILE, 50, 367*TILE, 370*TILE, 48)],
+  ['I2 dome hop (tall)',    () => runJump(370*TILE, 48, 372*TILE, 376*TILE, 48, 300, 12)],
+  ['I2 -> I3 (5)',          () => runJump(376*TILE, 48, 378*TILE, 383*TILE, 51)],
+  ['I3 dome hop',           () => runJump(383*TILE, 51, 385*TILE, 388*TILE, 51, 300, 12)],
+  ['I3 -> I4 (4, rise 2)',  () => runJump(388*TILE, 51, 391*TILE, 395*TILE, 49)],
+  ['I4 dome hop (tall)',    () => runJump(395*TILE, 49, 397*TILE, 401*TILE, 49, 300, 12)],
+  ['THE 6-GAP -> I5',       () => runJump(401*TILE, 49, 403*TILE, 409*TILE, 50)],
+  ['I5 dome hop',           () => runJump(409*TILE, 50, 411*TILE, 413*TILE, 50, 300, 4)],
+  ['I5 -> I6 (4)',          () => runJump(413*TILE, 50, 416*TILE, 419*TILE, 51)],
+  ['I6 dome hop (tall)',    () => runJump(419*TILE, 51, 421*TILE, 425*TILE, 51, 300, 12)],
+  ['I6 -> islet (4)',       () => runJump(425*TILE, 51, 428*TILE, 431*TILE, 50)],
+  ['islet -> cascade',      () => runJump(431*TILE, 50, 435*TILE, 439*TILE, 49)],
 ];
 for(const [name, fn] of gaps){
   const ok = fn();
@@ -650,5 +680,63 @@ for(const [name, sx, srow, edge, lx, lrow] of CINE_GAPS){
   check(swapped && atSpawn, 'E tile must switch level and reset spawn/checkpoint');
 }
 
+
+/* --- the ponds are waist-deep: falling in wades, never kills --- */
+{
+  const P = placeOnRoute(407*TILE, 54);          // standing on the basin bed
+  let maxWade = 0;
+  for(let f = 0; f < 60; f++){ step(P, { right: true }); maxWade = Math.max(maxWade, Math.abs(P.vx)); }
+  const capped = maxWade <= 0.81 && maxWade >= 0.6;
+  console.log(`wading speed       : ${maxWade.toFixed(2)} px/f (dry max 1.60) ${capped ? 'SLOWED' : 'NOT SLOWED'}`);
+  check(capped, 'wading must cap run speed at ~50%');
+  check(P.wading && P.deaths === 0, 'shallow water must not kill');
+}
+
+/* --- a wader can climb back out at a brick edge (pocket below the 6-gap) --- */
+{
+  const P = placeOnRoute(407*TILE, 54);
+  for(let f = 0; f < 300 && P.x > 404*TILE + 1; f++) step(P, { left: true });   // wade west to the step
+  const atStep = P.x <= 404*TILE + 2;
+  for(let f = 0; f < 90; f++) step(P, { left: true, jump: f < 30 });            // soggy hop onto it
+  const onStep = P.grounded && Math.abs(feet(P) - 52*TILE) < 1.2;
+  for(let f = 0; f < 120; f++) step(P, { left: true, jump: f < 26 });           // dry jump up to I4's rim
+  const onRim = P.grounded && Math.abs(feet(P) - 49*TILE) < 1.2 && P.x <= 402*TILE + 4;
+  console.log(`wade-out           : ${atStep ? 'waded to step' : 'STUCK IN WATER'}, ` +
+    `${onStep ? 'mounted step' : 'NO STEP'}, ${onRim ? 'back on island 4' : 'NOT ON RIM'}, deaths ${P.deaths}`);
+  check(atStep && onStep && onRim && P.deaths === 0, 'a splash must be recoverable at a brick edge');
+}
+
+/* --- soggy jumps: from the water you cannot mount a 3-tile rise --- */
+{
+  const P = placeOnRoute(407*TILE, 54);          // bed; island 5 face (rim 50) is 4 east
+  let mounted = false, jumpHeld = false;
+  for(let f = 0; f < 400; f++){
+    const jump = P.grounded ? !jumpHeld : jumpHeld;
+    step(P, { right: true, jump });
+    jumpHeld = jump;
+    if(P.grounded && feet(P) <= 50*TILE + 1) mounted = true;
+  }
+  console.log(`soggy jump         : island rim from the water ${mounted ? 'MOUNTED (BAD)' : 'out of reach OK'}`);
+  check(!mounted, 'a 3-tile rim must be unreachable straight from the water');
+}
+
+/* --- the cascade climb: step1 -> step2 -> step3 -> the way out bench --- */
+{
+  const P = placeOnRoute(437*TILE, 51);
+  let jumpHeld = false, out = false;
+  for(let f = 0; f < 900 && !out; f++){
+    const belowTop = feet(P) > 46*TILE + 0.5;
+    const jump = P.grounded ? (belowTop && !jumpHeld) : jumpHeld;
+    step(P, { right: true, jump });
+    jumpHeld = jump;
+    if(P.deaths > 0) break;
+    if(P.grounded && P.x >= 445*TILE && Math.abs(feet(P) - 46*TILE) < 1.2) out = true;
+  }
+  for(let f = 0; f < 30; f++) step(P, { left: true });   // stroll back over the bench
+  const rested = Math.abs(P.checkpoint.x - 445*TILE) < 0.5;
+  console.log(`cascade climb      : ${out ? 'CLIMBED to the way out' : 'FAILED'}, bench ${rested ? 'marked' : 'NOT MARKED'}`);
+  check(out, 'the cascade steps must be climbable to the way out');
+  check(rested, 'the way-out bench must set the checkpoint');
+}
 
 process.exit(exitCode);
