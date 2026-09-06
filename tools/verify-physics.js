@@ -211,4 +211,52 @@ function crossDashGap(dash){
   check(P.x-startX > 48, 'dash should cover at least its 48px core distance');
 }
 
+/* ============================================================
+   Barge gauntlet: drop off the landing platform's right end
+   (cols 147-151) into the sealed corridor (ceiling row 6, floor
+   row 10) blocked by a full-height hoarding at col 158.
+   ============================================================ */
+{
+  level.loadRoom(HIGHWALK);
+  check(level.tileAt(158,7) === 'H' && level.tileAt(158,8) === 'H' &&
+        level.tileAt(158,9) === 'H', 'hoarding column at 158,7-9');
+  check(level.tileAt(152,6) === '#' && level.tileAt(169,6) === '#', 'corridor ceiling ends');
+  check(level.tileAt(147,10) === '=' && level.tileAt(168,10) === '=', 'corridor floor ends');
+  check(level.tileAt(146,6) === '#' && level.tileAt(146,9) === '#', 'shaft divider wall');
+}
+function bargeCorridor(barge){
+  level.loadRoom(HIGHWALK);
+  const P = makePlayer();
+  P.x = 136*TILE; P.y = 2*TILE - H; P.px = P.x; P.py = P.y;
+  P.abilities.barge = barge;
+  for(let i = 0; i < 20; i++) step(P, {});
+  const FLOOR_FEET = 10*TILE, GOAL = 162*TILE;
+  let barged = false, maxX = P.x;
+  for(let f = 0; f < 900; f++){
+    const ctrl = { right: true };
+    if(!barged && P.grounded && Math.abs(P.y + H - FLOOR_FEET) < 1.2 && P.x + W >= 158*TILE - 24){
+      ctrl.barge = true; barged = true;            // shoulder-first into the hoarding
+    }
+    step(P, ctrl);
+    maxX = Math.max(maxX, P.x);
+    if(P.deaths > 0) return { made: false, maxX, died: true };
+    if(P.grounded && P.x >= GOAL) return { made: true, maxX };
+  }
+  return { made: false, maxX };
+}
+{
+  const r = bargeCorridor(true);
+  console.log('barge w/ ability   : ' + (r.made
+    ? `BROKE THROUGH, reached col ${(r.maxX/TILE).toFixed(1)}`
+    : `FAILED (max col ${(r.maxX/TILE).toFixed(1)}${r.died ? ', died' : ''})`));
+  check(r.made, 'corridor must be passable with barge');
+}
+{
+  const r = bargeCorridor(false);
+  console.log('barge w/o ability  : ' + (r.made
+    ? 'PASSED — gauntlet is NOT gated!'
+    : `blocked OK (stopped at col ${(r.maxX/TILE).toFixed(1)} of 158)`));
+  check(!r.made && r.maxX < 158*TILE, 'corridor must be impassable without barge');
+}
+
 process.exit(exitCode);

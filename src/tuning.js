@@ -33,6 +33,11 @@ export const TUNING = {
   dashFreeze:    3,      // frames of hit-stop on activation
   dashUpExitMult: 0.5,   // vy kept when an upward dash ends (softens the pop)
 
+  bargeWindup:   6,      // coil-up frames before the barge launches
+  bargeFrames:   14,     // barge travel duration
+  bargeSpeed:    2.4,    // px/frame during the barge
+  bargeShake:    8,      // screen-shake frames when a hoarding breaks
+
   squashLand:    0.55,   // scaleY on hard landing (lower = squashier)
   squashJump:    1.28,   // scaleY on jump
   squashRecover: 0.14,   // lerp speed back to normal

@@ -17,10 +17,11 @@ export function makePlayer(){
     prevJump: false,
     wallCoyote: 0, lastWallDir: 0, inputLock: 0,
     dashLeft: 0, dashVX: 0, dashVY: 0, dashes: 1, freeze: 0, prevDash: false,
+    bargeWind: 0, bargeLeft: 0, prevBarge: false, shake: 0,
     trail: [],                                   // dash afterimages
     sx: 1, sy: 1,                                // squash/stretch scales
     deaths: 0, flash: 0,
-    abilities: { wallJump: true, dash: true, barge: false, grapple: false },
+    abilities: { wallJump: true, dash: true, barge: true, grapple: false },
   };
 }
 
@@ -29,6 +30,7 @@ export function respawn(P){
   P.vx = 0; P.vy = 0; P.sx = 1; P.sy = 1; P.grounded = false;
   P.wallCoyote = 0; P.lastWallDir = 0; P.inputLock = 0;
   P.dashLeft = 0; P.dashes = 1; P.freeze = 0; P.trail.length = 0;
+  P.bargeWind = 0; P.bargeLeft = 0;
   P.flash = 8;
 }
 
@@ -41,9 +43,29 @@ export function step(P, ctrl){
   /* afterimages fade even while frozen */
   for(const t of P.trail) t.life--;
   while(P.trail.length && P.trail[0].life <= 0) P.trail.shift();
+  if(P.shake > 0) P.shake--;
 
-  /* --- dash activation freeze (hit-stop) --- */
+  /* --- dash activation freeze / impact hit-stop --- */
   if(P.freeze > 0){ P.freeze--; return; }
+
+  /* --- barge: coil up, then launch shoulder-first --- */
+  if(P.bargeWind > 0){
+    P.bargeWind--;
+    P.vx = 0; P.vy = 0;
+    if(P.bargeWind === 0) P.bargeLeft = T.bargeFrames;
+    return;
+  }
+  if(P.bargeLeft > 0){
+    P.bargeLeft--;
+    P.vx = P.facing * T.bargeSpeed;
+    P.vy += T.gravity;                           // can barge off a ledge
+    if(P.vy > T.maxFall) P.vy = T.maxFall;
+    moveAndResolve(P);
+    groundedUpdate(P, 1);
+    if(P.buffer > 0) P.buffer--;
+    pitCheck(P);
+    return;
+  }
 
   /* --- mid-dash: fixed velocity, no gravity, no steering --- */
   if(P.dashLeft > 0){
@@ -129,6 +151,15 @@ export function step(P, ctrl){
     return;
   }
 
+  /* --- barge trigger: grounded, short windup, then launch --- */
+  const bargePressed = ctrl.barge && !P.prevBarge;
+  P.prevBarge = ctrl.barge;
+  if(bargePressed && P.abilities.barge && P.grounded){
+    P.bargeWind = T.bargeWindup;
+    P.sx = 0.8; P.sy = 1.2;                      // coil up
+    return;
+  }
+
   /* --- gravity with apex floatiness --- */
   const atApex = !P.grounded && Math.abs(P.vy) < T.apexWindow;
   P.vy += T.gravity * (atApex ? T.apexGravMult : 1);
@@ -153,12 +184,19 @@ export function step(P, ctrl){
    Sets P._landed / P._wasFalling for the grounded pass. */
 function moveAndResolve(P){
   const T = TUNING;
-  const nx = P.x + P.vx;
+  let nx = P.x + P.vx;
+  /* a barge smashes through hoardings in its path (whole sheet breaks) */
+  if(P.bargeLeft > 0 && solid(P, nx, P.y) &&
+     level.breakHoardingAABB(nx, P.y, P.w, P.h)){
+    P.shake = T.bargeShake;
+    P.freeze = 2;                                  // impact hit-stop
+  }
   if(solid(P, nx, P.y)){
     const stepX = Math.sign(P.vx);
     while(!solid(P, P.x+stepX, P.y)) P.x += stepX;  // snap flush to wall
     P.vx = 0;
     if(P.dashLeft > 0) P.dashLeft = 1;             // dash dies on the wall
+    if(P.bargeLeft > 0){ P.bargeLeft = 0; P.shake = Math.max(P.shake, 3); }  // thud
   }else P.x = nx;
 
   P._wasFalling = P.vy;

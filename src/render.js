@@ -55,7 +55,10 @@ export function stepAmbience(){
 
 /* ---------------- render ---------------- */
 export function render(P, alpha, debugOn, fps){
-  const cx = Math.round(cam.x), cy = Math.round(cam.y);
+  /* capped screen shake (barge impacts) */
+  const shakeAmp = P.shake > 0 ? Math.min(2, Math.ceil(P.shake/3)) : 0;
+  const shakeX = shakeAmp * (P.shake % 2 ? 1 : -1);
+  const cx = Math.round(cam.x) + shakeX, cy = Math.round(cam.y);
 
   /* sky — bright hazy London daylight, warmer at the horizon */
   const g = ctx.createLinearGradient(0,0,0,VIEW_H);
@@ -90,10 +93,20 @@ export function render(P, alpha, debugOn, fps){
   for(let ty = y0; ty <= y1; ty++){
     for(let tx = x0; tx <= x1; tx++){
       const t = tileAt(tx,ty);
-      if(t !== '#' && t !== '=') continue;
+      if(t !== '#' && t !== '=' && t !== 'H') continue;
       const sx = tx*TILE - cx, sy = ty*TILE - cy;
       const topExposed = !solidAt(tx,ty-1);
-      if(t === '=' && topExposed){
+      if(t === 'H'){
+        /* plywood hoarding: warm boards, plank joints, a pasted notice */
+        ctx.fillStyle = '#c09055';  ctx.fillRect(sx,sy,TILE,TILE);
+        ctx.fillStyle = '#9a7040';  ctx.fillRect(sx,sy+2,TILE,1);
+        ctx.fillRect(sx,sy+5,TILE,1);
+        ctx.fillStyle = '#8a6238';  ctx.fillRect(sx,sy,1,TILE);
+        if((tx*31 + ty*17) % 3 === 0){
+          ctx.fillStyle = '#f2efe6'; ctx.fillRect(sx+3,sy+3,3,4);   // notice bill
+          ctx.fillStyle = '#d94f4f'; ctx.fillRect(sx+4,sy+4,1,1);
+        }
+      }else if(t === '=' && topExposed){
         /* walkway: brick paving with staggered joints */
         ctx.fillStyle = PAL.brick;      ctx.fillRect(sx,sy,TILE,TILE);
         ctx.fillStyle = PAL.brickDark;  ctx.fillRect(sx,sy+3,TILE,1);
