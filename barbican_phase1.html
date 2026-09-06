@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE BARBICAN — Phase 1: Controller</title>
+<style>
+  :root{
+    --night:#0a0d1c; --line-yellow:#ffd95e; --warm:#e8ecf5;
+  }
+  html,body{margin:0;height:100%;background:var(--night);color:var(--warm);
+    font-family:"Courier New",monospace;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:10px;}
+  #frame{position:relative;line-height:0;border:1px solid #243052;}
+  canvas{width:min(96vw,960px);aspect-ratio:320/180;
+    image-rendering:pixelated;image-rendering:crisp-edges;background:#cdd9e2;}
+  #hud{font-size:12px;letter-spacing:.08em;color:#7e8aa8;text-transform:uppercase;}
+  #hud b{color:var(--line-yellow);font-weight:normal;}
+  #title{font-size:13px;letter-spacing:.35em;color:var(--warm);}
+  #title span{color:var(--line-yellow);}
+</style>
+</head>
+<body>
+<div id="title">THE <span>BARBICAN</span> · PHASE 1 · HIGHWALK TEST</div>
+<div id="frame"><canvas id="c" width="320" height="180"></canvas></div>
+<div id="hud"><b>←→ / A D</b> move&nbsp;&nbsp;<b>Z / J / SPACE</b> jump&nbsp;&nbsp;<b>`</b> debug&nbsp;&nbsp;<b>R</b> reset</div>
+
+<script>
+"use strict";
+/* ================================================================
+   TUNING — everything that defines how the player FEELS.
+   Tweak, refresh, repeat. Units: px per frame at 60 fps.
+   ================================================================ */
+const TUNING = {
+  runAccel:      0.12,   // ground acceleration
+  airAccel:      0.065,  // air acceleration
+  friction:      0.16,   // ground deceleration when no input
+  airDrag:       0.02,   // air deceleration when no input
+  maxRun:        1.6,    // max horizontal speed
+
+  gravity:       0.21,
+  maxFall:       4.0,    // terminal velocity
+  apexWindow:    0.55,   // |vy| below this = "at apex"
+  apexGravMult:  0.6,    // gravity multiplier at apex (floatiness)
+
+  jumpVelocity:  3.5,    // initial upward speed
+  jumpCut:       0.45,   // vy multiplier when jump released early
+  coyoteFrames:  6,      // grace frames after leaving a ledge
+  bufferFrames:  6,      // frames a jump press is remembered
+  cornerNudge:   2,      // px of ceiling corner correction
+
+  squashLand:    0.55,   // scaleY on hard landing (lower = squashier)
+  squashJump:    1.28,   // scaleY on jump
+  squashRecover: 0.14,   // lerp speed back to normal
+};
+
+/* ================================================================
+   LEVEL — '#' concrete, '=' walkway (yellow line on top),
+   'P' spawn. Missing floor = pit (falls to respawn).
+   8x8 tiles. Edit freely.
+   ================================================================ */
+const LEVEL = [
+"",
+"",
+"",
+"",
+"",
+"",
+"",
+"",
+"",
+"                                                                                      ### ###",
+"",
+"",
+"                                                                                    ============",
+"                                                                                    ############",
+"                                                                                  ##",
+"                                                                                  ##",
+"                                                     ###         ###            ####",
+"                                                                                ####",
+"   P                                           ###         ###                ######",
+"                                                                              ######",
+"=============  ========   =======     =======                         ========######",
+"#############  ########   #######     #######                         ##############",
+"#############  ########   #######     #######                         ##############",
+];
+const TILE = 8;
+const ROOM_W = Math.max(...LEVEL.map(r=>r.length));
+const ROOM_H = LEVEL.length;
+const VIEW_W = 320, VIEW_H = 180;
+
+function tileAt(tx,ty){
+  if(tx<0||tx>=ROOM_W) return '#';          // solid walls at room edges
+  if(ty<0) return ' ';
+  if(ty>=ROOM_H) return ' ';                // open bottom = pits
+  return (LEVEL[ty][tx]||' ');
+}
+function solidAt(tx,ty){ const t=tileAt(tx,ty); return t==='#'||t==='='; }
+
+/* ---------------- input ---------------- */
+const keys = {};
+let debugOn = false;
+addEventListener('keydown', e=>{
+  if(e.repeat) return;
+  keys[e.code]=true;
+  if(e.code==='Backquote') debugOn=!debugOn;
+  if(e.code==='KeyR') respawn();
+  if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space'].includes(e.code)) e.preventDefault();
+});
+addEventListener('keyup', e=>{ keys[e.code]=false; });
+const heldLeft  = ()=> keys['ArrowLeft'] ||keys['KeyA'];
+const heldRight = ()=> keys['ArrowRight']||keys['KeyD'];
+const heldJump  = ()=> keys['KeyZ']||keys['KeyJ']||keys['Space'];
+
+/* ---------------- player ---------------- */
+const spawn = (()=>{ for(let y=0;y<ROOM_H;y++){ const x=LEVEL[y].indexOf('P'); if(x>=0) return {x:x*TILE, y:y*TILE}; } return {x:16,y:140}; })();
+
+const P = {
+  x:spawn.x, y:spawn.y, px:spawn.x, py:spawn.y,   // position + previous (for render lerp)
+  w:8, h:14,
+  vx:0, vy:0,
+  grounded:false, facing:1,
+  coyote:0, buffer:0, jumpHeld:false, cutDone:true,
+  sx:1, sy:1,                                     // squash/stretch scales
+  deaths:0,
+};
+let prevJumpKey = false;
+
+function respawn(){
+  P.x=spawn.x; P.y=spawn.y; P.px=P.x; P.py=P.y;
+  P.vx=0; P.vy=0; P.sx=1; P.sy=1; P.grounded=false;
+  flash = 8;
+}
+let flash = 0;
+
+/* ---------------- collision helpers ---------------- */
+function overlapsSolid(x,y){
+  const x0=Math.floor(x/TILE), x1=Math.floor((x+P.w-0.01)/TILE);
+  const y0=Math.floor(y/TILE), y1=Math.floor((y+P.h-0.01)/TILE);
+  for(let ty=y0;ty<=y1;ty++) for(let tx=x0;tx<=x1;tx++)
+    if(solidAt(tx,ty)) return true;
+  return false;
+}
+
+/* ---------------- update (fixed 60hz) ---------------- */
+function update(){
+  const T = TUNING;
+  P.px = P.x; P.py = P.y;
+
+  /* --- horizontal intent --- */
+  const dir = (heldRight()?1:0) - (heldLeft()?1:0);
+  if(dir!==0){
+    P.facing = dir;
+    const a = P.grounded ? T.runAccel : T.airAccel;
+    P.vx += a*dir;
+    if(Math.abs(P.vx) > T.maxRun) P.vx = T.maxRun*Math.sign(P.vx);
+  }else{
+    const f = P.grounded ? T.friction : T.airDrag;
+    if(Math.abs(P.vx) <= f) P.vx = 0; else P.vx -= f*Math.sign(P.vx);
+  }
+
+  /* --- jump: buffer + coyote --- */
+  const jk = heldJump();
+  if(jk && !prevJumpKey) P.buffer = T.bufferFrames;
+  prevJumpKey = jk;
+
+  if(P.buffer>0 && (P.grounded || P.coyote>0)){
+    P.vy = -T.jumpVelocity;
+    P.buffer = 0; P.coyote = 0;
+    P.grounded = false; P.cutDone = false;
+    P.sy = T.squashJump; P.sx = 2 - T.squashJump;   // stretch
+  }
+  /* variable height: cut velocity once on release */
+  if(!jk && !P.cutDone && P.vy < 0){
+    P.vy *= T.jumpCut; P.cutDone = true;
+  }
+
+  /* --- gravity with apex floatiness --- */
+  const atApex = !P.grounded && Math.abs(P.vy) < T.apexWindow;
+  P.vy += T.gravity * (atApex ? T.apexGravMult : 1);
+  if(P.vy > T.maxFall) P.vy = T.maxFall;
+
+  /* --- move X, resolve --- */
+  let nx = P.x + P.vx;
+  if(overlapsSolid(nx, P.y)){
+    const step = Math.sign(P.vx);
+    while(!overlapsSolid(P.x+step, P.y)) P.x += step;  // snap flush to wall
+    P.vx = 0;
+  }else P.x = nx;
+
+  /* --- move Y, resolve (+ ceiling corner correction) --- */
+  const wasFalling = P.vy;
+  let ny = P.y + P.vy;
+  let landed = false;
+  if(overlapsSolid(P.x, ny)){
+    if(P.vy < 0){
+      /* moving up: try nudging sideways around a ceiling corner */
+      let nudged = false;
+      for(let n=1; n<=TUNING.cornerNudge && !nudged; n++){
+        if(!overlapsSolid(P.x-n, ny)){ P.x-=n; P.y=ny; nudged=true; }
+        else if(!overlapsSolid(P.x+n, ny)){ P.x+=n; P.y=ny; nudged=true; }
+      }
+      if(!nudged){
+        const step=-1;
+        while(!overlapsSolid(P.x, P.y+step)) P.y += step;
+        P.vy = 0;
+      }
+    }else{
+      const step = 1;
+      while(!overlapsSolid(P.x, P.y+step)) P.y += step;
+      P.vy = 0; landed = true;
+    }
+  }else P.y = ny;
+
+  /* --- grounded / coyote --- */
+  const onGround = overlapsSolid(P.x, P.y+1) && P.vy>=0;
+  if(onGround){
+    if(!P.grounded && landed){
+      /* landing squash scales with impact */
+      const impact = Math.min(1, wasFalling / TUNING.maxFall);
+      P.sy = 1 - (1-TUNING.squashLand)*impact;
+      P.sx = 2 - P.sy;
+    }
+    P.grounded = true; P.coyote = TUNING.coyoteFrames; P.cutDone = true;
+  }else{
+    if(P.grounded) P.coyote = TUNING.coyoteFrames;  // just left a ledge
+    P.grounded = false;
+    if(P.coyote>0) P.coyote--;
+  }
+  if(P.buffer>0) P.buffer--;
+
+  /* --- squash recovery --- */
+  P.sx += (1-P.sx)*TUNING.squashRecover;
+  P.sy += (1-P.sy)*TUNING.squashRecover;
+
+  /* --- fell into a pit --- */
+  if(P.y > ROOM_H*TILE + 24){ P.deaths++; respawn(); }
+  if(flash>0) flash--;
+  stepAmbience();
+
+  /* --- camera --- */
+  const targetX = P.x + P.w/2 - VIEW_W/2 + P.facing*24;
+  const targetY = P.y + P.h/2 - VIEW_H/2;
+  cam.x += (targetX-cam.x)*0.08;
+  cam.y += (targetY-cam.y)*0.12;
+  cam.x = Math.max(0, Math.min(ROOM_W*TILE-VIEW_W, cam.x));
+  cam.y = Math.max(0, Math.min(ROOM_H*TILE-VIEW_H, cam.y));
+}
+const cam = {x:0,y:0};
+
+/* ---------------- ambience: petals & planters ---------------- */
+const PLANTERS = [[6,20],[19,20],[29,20],[41,20],[73,20],[94,12]];
+const rand = n=>Math.random()*n;
+const PETAL_COLORS = ['#e88aa8','#f2b8c6','#f7f2e9','#d94f6f'];
+const motes = Array.from({length:18},()=>({x:rand(VIEW_W), y:rand(VIEW_H), s:0.15+rand(0.2), c:PETAL_COLORS[Math.floor(rand(4))], ph:rand(6.28)}));
+function stepAmbience(){
+  for(const m of motes){ m.y+=m.s; m.x+=Math.sin(m.y*0.08+m.ph)*0.18; if(m.y>VIEW_H+2){m.y=-2; m.x=rand(VIEW_W);} }
+}
+
+/* ---------------- render ---------------- */
+const ctx = document.getElementById('c').getContext('2d');
+ctx.imageSmoothingEnabled = false;
+
+function render(alpha){
+  const cx = Math.round(cam.x), cy = Math.round(cam.y);
+
+  /* sky — bright hazy London daylight */
+  const g = ctx.createLinearGradient(0,0,0,VIEW_H);
+  g.addColorStop(0,'#a8c4dc'); g.addColorStop(0.6,'#cdd9e2'); g.addColorStop(1,'#e6e3da');
+  ctx.fillStyle=g; ctx.fillRect(0,0,VIEW_W,VIEW_H);
+  /* soft sun */
+  const sun = ctx.createRadialGradient(252,30,4,252,30,60);
+  sun.addColorStop(0,'rgba(255,250,235,0.9)'); sun.addColorStop(1,'rgba(255,250,235,0)');
+  ctx.fillStyle=sun; ctx.beginPath(); ctx.arc(252,30,60,0,7); ctx.fill();
+
+  /* parallax towers, balconies in bloom (far layer hazier, near layer full detail) */
+  drawTower( 56 - cx*0.22,  26, 40, true,  1);
+  drawTower(168 - cx*0.22,  14, 46, true,  2);
+  drawTower(286 - cx*0.22,  34, 36, true,  3);
+  drawTower(104 - cx*0.45,  52, 34, false, 4);
+  drawTower(238 - cx*0.45,  60, 30, false, 5);
+
+  /* drifting petals */
+  for(const m of motes){
+    ctx.fillStyle = m.c;
+    ctx.fillRect((m.x-cx*0.3+960)%VIEW_W, m.y, 2, 1);
+  }
+
+  /* tiles */
+  const x0=Math.floor(cx/TILE), x1=Math.floor((cx+VIEW_W)/TILE);
+  const y0=Math.floor(cy/TILE), y1=Math.floor((cy+VIEW_H)/TILE);
+  for(let ty=y0; ty<=y1; ty++){
+    for(let tx=x0; tx<=x1; tx++){
+      const t=tileAt(tx,ty);
+      if(t!=='#'&&t!=='=') continue;
+      const sx=tx*TILE-cx, sy=ty*TILE-cy;
+      ctx.fillStyle = '#9b968b';
+      ctx.fillRect(sx,sy,TILE,TILE);
+      /* board-marked concrete: horizontal shutter lines */
+      ctx.fillStyle = '#868178';
+      ctx.fillRect(sx,sy+3,TILE,1);
+      ctx.fillRect(sx,sy+6,TILE,1);
+      /* sunlit top edge if exposed */
+      if(!solidAt(tx,ty-1)){
+        ctx.fillStyle = '#dcd8cc';
+        ctx.fillRect(sx,sy,TILE,1);
+        if(t==='='){
+          ctx.fillStyle='#f7c623'; ctx.fillRect(sx,sy,TILE,1);   // the Yellow Line
+        }
+      }
+    }
+  }
+
+  /* end-of-gauntlet sign */
+  signAt(86*TILE-cx, 6*TILE-cy, 'PHASE 2 →');
+
+  /* walkway planters */
+  for(const [lx,ly] of PLANTERS) drawPlanter(lx,ly,cx,cy);
+
+  /* player (interpolated, squashed around bottom-center) */
+  const ix = P.px + (P.x-P.px)*alpha - cx;
+  const iy = P.py + (P.y-P.py)*alpha - cy;
+  const w = P.w*P.sx, h = P.h*P.sy;
+  const dx = ix + P.w/2 - w/2, dy = iy + P.h - h;
+  ctx.fillStyle = '#2f3440';
+  ctx.fillRect(dx, dy, w, h);
+  ctx.fillStyle = '#ffd23e';                       // yellow scarf accent
+  ctx.fillRect(dx, dy+3*P.sy, w, 2*P.sy);
+  ctx.fillStyle = '#f2efe6';                       // eyes face the move direction
+  ctx.fillRect(dx, dy+3*P.sy, w, 2*P.sy);
+  ctx.fillStyle = '#14141a';                       // eyes face the move direction
+  const eye = P.facing>0 ? dx+w-3 : dx+1;
+  ctx.fillRect(eye, dy+1, 2, 2);
+
+  /* bright atmospheric haze at the base + the gentlest vignette */
+  const haze = ctx.createLinearGradient(0,VIEW_H-32,0,VIEW_H);
+  haze.addColorStop(0,'rgba(220,228,235,0)'); haze.addColorStop(1,'rgba(220,228,235,0.28)');
+  ctx.fillStyle=haze; ctx.fillRect(0,VIEW_H-32,VIEW_W,32);
+  const vig = ctx.createRadialGradient(VIEW_W/2,VIEW_H/2,90,VIEW_W/2,VIEW_H/2,210);
+  vig.addColorStop(0,'rgba(30,40,60,0)'); vig.addColorStop(1,'rgba(30,40,60,0.14)');
+  ctx.fillStyle=vig; ctx.fillRect(0,0,VIEW_W,VIEW_H);
+
+  if(flash>0){ ctx.fillStyle=`rgba(232,226,212,${flash/16})`; ctx.fillRect(0,0,VIEW_W,VIEW_H); }
+
+  /* debug overlay */
+  if(debugOn){
+    ctx.fillStyle='rgba(10,10,14,0.78)'; ctx.fillRect(4,4,128,60);
+    ctx.fillStyle='#f2c84b'; ctx.font='7px monospace';
+    const L=[
+      `vx ${P.vx.toFixed(2)}  vy ${P.vy.toFixed(2)}`,
+      `grounded ${P.grounded}`,
+      `coyote ${P.coyote}  buffer ${P.buffer}`,
+      `pos ${P.x.toFixed(0)},${P.y.toFixed(0)}`,
+      `deaths ${P.deaths}`,
+      `fps ${fps.toFixed(0)}`,
+    ];
+    L.forEach((s,i)=>ctx.fillText(s,8,13+i*9));
+  }
+}
+
+function drawTower(x,top,w,far,seed){
+  /* palettes sampled from the estate in daylight */
+  const conc = far ? '#aebbc6' : '#8f949b';   // pebbledash concrete
+  const slab = far ? '#bcc8d2' : '#aaaeb4';   // balcony lip catching light
+  const win  = far ? '#8e9dac' : '#3c4450';   // glazing band
+  const rail = far ? '#92a4b8' : '#37588a';   // the blue-painted railings
+  const FLOWERS = ['#e0568a','#d94f4f','#f2a0c0','#f7f2e9','#c2477e'];
+  ctx.fillStyle=conc; ctx.fillRect(x,top,w,VIEW_H-top);
+  for(let i=0;i<w;i+=6) ctx.fillRect(x+i, top-4, 3, 4);     // jagged crown
+  for(let fy=top+6; fy<VIEW_H-4; fy+=11){                   // one floor per band
+    ctx.fillStyle=win;  ctx.fillRect(x+1, fy,   w-2, 5);
+    ctx.fillStyle=rail; ctx.fillRect(x+1, fy+5, w-2, 1);
+    ctx.fillStyle=slab; ctx.fillRect(x,   fy+6, w,   3);
+    if(!far){
+      /* flower boxes spilling over the railings */
+      for(let fx=2; fx<w-3; fx+=3){
+        const hsh=(fx*7+fy*13+seed*31)%19;
+        if(hsh<8){ ctx.fillStyle=FLOWERS[hsh%FLOWERS.length]; ctx.fillRect(x+fx, fy+4, 2, 2); }
+        else if(hsh<11){ ctx.fillStyle='#6f8f5a'; ctx.fillRect(x+fx, fy+4, 2, 2); }
+      }
+    }else{
+      for(let fx=3; fx<w-3; fx+=5)
+        if(((fx*7+fy*13+seed*31)%17)<5){ ctx.fillStyle='#d8a0b4'; ctx.fillRect(x+fx, fy+5, 2, 1); }
+    }
+  }
+}
+function drawPlanter(tx,ty,cx,cy){
+  const x=tx*TILE-cx, base=ty*TILE-cy;
+  if(x<-20||x>VIEW_W+20) return;
+  ctx.fillStyle='#7e848c'; ctx.fillRect(x-2, base-4, 12, 4);   // concrete trough
+  ctx.fillStyle='#9aa0a8'; ctx.fillRect(x-2, base-4, 12, 1);
+  const F=['#e0568a','#d94f4f','#f2a0c0','#6f8f5a','#c2477e','#6f8f5a'];
+  for(let i=0;i<6;i++){ ctx.fillStyle=F[(i+tx)%F.length]; ctx.fillRect(x-1+i*2, base-6-((i+tx)%2), 2, 2); }
+}
+function signAt(x,y,text){
+  ctx.fillStyle='#232c4a'; ctx.fillRect(x-2,y-9,58,12);
+  ctx.fillStyle='#ffd95e'; ctx.font='7px monospace'; ctx.fillText(text,x+2,y);
+}
+
+/* ---------------- fixed-timestep loop ---------------- */
+const STEP = 1000/60;
+let acc=0, last=performance.now(), fps=60;
+function frame(now){
+  const dt = Math.min(now-last, 100); last = now;
+  fps = fps*0.95 + (1000/Math.max(dt,1))*0.05;
+  acc += dt;
+  while(acc >= STEP){ update(); acc -= STEP; }
+  render(acc/STEP);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
