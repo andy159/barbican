@@ -113,6 +113,38 @@ export function render(P, alpha, debugOn, fps){
         if(P.checkpoint && Math.floor(P.checkpoint.x/TILE) === tx){
           ctx.fillStyle = '#f7c623'; ctx.fillRect(sx+3, sy+2, 2, 1);   // resting mark
         }
+      }else if(t === 'T'){
+        /* tower facade: 3-row rhythm of balcony slab / glazing / spandrel,
+           aligned by world row so bands run continuously up the face */
+        const band = ((ty % 3) + 3) % 3;
+        if(band === 0){
+          /* balcony: slab lip, serrated underside, railing, flower boxes */
+          ctx.fillStyle = PAL.towerMid;   ctx.fillRect(sx,sy,TILE,TILE);
+          ctx.fillStyle = PAL.slabLight;  ctx.fillRect(sx,sy,TILE,2);
+          ctx.fillStyle = PAL.towerShade;
+          for(let n = tx%2; n < TILE; n += 2) ctx.fillRect(sx+n, sy+2, 1, 1);
+          ctx.fillStyle = '#37588a';      ctx.fillRect(sx,sy+4,TILE,1);   // railing
+          const h = (tx*31 + ty*17) % 7;
+          if(h < 3){
+            ctx.fillStyle = FLOWERS[(tx+ty)%FLOWERS.length];
+            ctx.fillRect(sx + 1 + h*2, sy+3, 2, 2);
+          }else if(h === 4){
+            ctx.fillStyle = PAL.green;    ctx.fillRect(sx+3, sy+3, 3, 2);
+          }
+        }else if(band === 1){
+          /* glazing band, deep set, with mullions */
+          ctx.fillStyle = '#333d42';      ctx.fillRect(sx,sy,TILE,TILE);
+          ctx.fillStyle = '#4c5a60';      ctx.fillRect(sx + (tx%2 ? 2 : 5), sy, 1, TILE);
+          ctx.fillStyle = '#242c30';      ctx.fillRect(sx,sy,TILE,1);
+        }else{
+          /* spandrel: pick-hammered concrete */
+          ctx.fillStyle = PAL.towerMid;   ctx.fillRect(sx,sy,TILE,TILE);
+          ctx.fillStyle = PAL.towerShade; ctx.fillRect(sx,sy+5,TILE,1);
+          ctx.fillRect(sx + (tx*73 + ty*151) % 8, sy+2, 1, 1);
+        }
+        /* sun-lit west edge, shaded east edge where the face is exposed */
+        if(!solidAt(tx-1,ty)){ ctx.fillStyle = PAL.towerSun;   ctx.fillRect(sx,sy,1,TILE); }
+        if(!solidAt(tx+1,ty)){ ctx.fillStyle = PAL.towerShade; ctx.fillRect(sx+TILE-1,sy,1,TILE); }
       }else if(t === 'H'){
         /* plywood hoarding: warm boards, plank joints, a pasted notice */
         ctx.fillStyle = '#c09055';  ctx.fillRect(sx,sy,TILE,TILE);
