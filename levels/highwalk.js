@@ -74,7 +74,6 @@ export const HIGHWALK = {
   interiors: [[214,7,243,31]],
   lamps: [[214,29],[229,23],[221,15],[221,7]],
   doors: [[214,30,215,31]],
-  marks: [[225,29,'u'],[227,22,'r'],[234,20,'u'],[239,14,'l'],[228,14,'l'],[218,11,'u']],
   signs: [
     { tx: 10, ty: 46, text: "FROBISHER WALK →" },
     { tx: 20, ty: 52, text: "WALL JUMP ↑" },
