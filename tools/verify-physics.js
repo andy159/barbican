@@ -1,11 +1,12 @@
-/* Simulates TUNING through the real player module and prints movement
-   envelope numbers, plus gauntlet proofs against the real highwalk
-   room. Run `node tools/verify-physics.js` whenever tuning, player.js,
-   or a level changes. Exits non-zero on any failed proof.
+/* Simulates TUNING through the real player module: movement envelope,
+   mechanics proofs in synthetic rooms (dash/barge are gated off in the
+   estate route but must keep working for later levels), and route
+   proofs against the real level. Run `node tools/verify-physics.js`
+   whenever tuning, player.js, or a level changes. Exits non-zero on
+   any failed proof.
 
    Expected envelope (verified since Phase 1 — don't drift without
    re-proving the level): max jump ≈3.45 tiles, min ≈1.01, range ≈7.20. */
-import { TUNING } from '../src/tuning.js';
 import * as level from '../src/level.js';
 import { makePlayer, step } from '../src/player.js';
 import { HIGHWALK } from '../levels/highwalk.js';
@@ -16,17 +17,18 @@ let exitCode = 0;
 
 const check = (ok, label) => { if(!ok){ exitCode = 1; console.error(`FAIL: ${label}`); } };
 
-function flatRoom(){
+function flatRoom(extra = []){
   const rows = Array.from({length: 40}, () => '');
   rows.push('P' + ' '.repeat(399));
   rows.push(' '.repeat(400));                    // clearance — player is ~2 tiles tall
   rows.push('#'.repeat(400));
-  return { id: 'flat', tiles: rows };
+  for(const [y, s] of extra) rows[y] = s;
+  return { id: 'synthetic', tiles: rows };
 }
 
-function settle(){
+function settle(frames = 120){
   const P = makePlayer();
-  for(let i = 0; i < 120; i++) step(P, {});
+  for(let i = 0; i < frames; i++) step(P, {});
   return P;
 }
 
@@ -34,7 +36,9 @@ const touching = P =>
   level.overlapsSolid(P.x+1, P.y, W, H) ?  1 :
   level.overlapsSolid(P.x-1, P.y, W, H) ? -1 : 0;
 
-/* --- max jump height (hold jump) --- */
+const feet = P => P.y + H;
+
+/* ================= movement envelope ================= */
 {
   level.loadRoom(flatRoom());
   const P = settle();
@@ -45,11 +49,9 @@ const touching = P =>
     if(P.grounded && f > 10) break;
   }
   const tiles = (startY-peak)/TILE;
-  console.log(`max jump height : ${tiles.toFixed(2)} tiles (${(startY-peak).toFixed(1)}px)`);
+  console.log(`max jump height : ${tiles.toFixed(2)} tiles`);
   check(tiles > 3.3 && tiles < 3.6, 'max jump drifted from ~3.45 tiles');
 }
-
-/* --- min jump height (tap, released after 1 frame) --- */
 {
   level.loadRoom(flatRoom());
   const P = settle();
@@ -60,86 +62,24 @@ const touching = P =>
     if(P.grounded && f > 10) break;
   }
   const tiles = (startY-peak)/TILE;
-  console.log(`min jump height : ${tiles.toFixed(2)} tiles (${(startY-peak).toFixed(1)}px)`);
+  console.log(`min jump height : ${tiles.toFixed(2)} tiles`);
   check(tiles > 0.9 && tiles < 1.1, 'min jump drifted from ~1.01 tiles');
 }
-
-/* --- horizontal range at full run speed --- */
 {
   level.loadRoom(flatRoom());
   const P = settle();
   for(let f = 0; f < 120; f++) step(P, { right: true });
-  const startX = P.x; let frames = 0;
+  const startX = P.x;
   for(let f = 0; f < 240; f++){
     step(P, { right: true, jump: true });
-    frames++;
     if(P.grounded && f > 10) break;
   }
   const tiles = (P.x-startX)/TILE;
-  console.log(`jump range      : ${tiles.toFixed(2)} tiles (${(P.x-startX).toFixed(1)}px) in ${frames} frames`);
+  console.log(`jump range      : ${tiles.toFixed(2)} tiles`);
   check(tiles > 7.0 && tiles < 7.4, 'jump range drifted from ~7.20 tiles');
 }
 
-/* ============================================================
-   Wall-jump gauntlet proofs against the REAL highwalk room.
-   Chimney: interior cols 102-105, floor surface y=96 (row 12),
-   exit ledge surface y=16 (row 2): a 10-tile climb.
-   ============================================================ */
-function placeInChimney(wallJump){
-  level.loadRoom(HIGHWALK);
-  const P = makePlayer();
-  P.x = 103*TILE + 4; P.y = 12*TILE - H; P.px = P.x; P.py = P.y;
-  P.abilities.wallJump = wallJump;
-  for(let i = 0; i < 30; i++) step(P, {});
-  return P;
-}
-
-/* Competent-player policy for the chimney's geometry: finish with a
-   left-wall jump from feet in the band that crests above the exit
-   surface moving right; slide on a wall to set up the right height. */
-function climbChimney(P, maxFrames){
-  const EXIT_SURFACE_Y = 2*TILE;
-  let jumpHeld = false, minFeet = P.y + H;
-  for(let f = 0; f < maxFrames; f++){
-    const feet = P.y + H;
-    const cleared = feet <= EXIT_SURFACE_Y - 2;
-    const t = touching(P);
-    let wantJump = false;
-    if(P.grounded) wantJump = true;
-    else if(cleared) wantJump = false;
-    else if(t === 1)  wantJump = feet >= 55;                 // right wall: don't overshoot
-    else if(t === -1) wantJump = feet <= 42 || feet >= 70;   // left wall: finish band, or low climb
-    const jump = wantJump ? !jumpHeld : jumpHeld;
-    const dir = cleared ? 1 : (t !== 0 ? t : (P.grounded ? 1 : (P.vx < 0 ? -1 : 1)));
-    step(P, { left: dir === -1, right: dir === 1, jump });
-    jumpHeld = jump;
-    minFeet = Math.min(minFeet, P.y + H);
-    if(P.grounded && Math.abs((P.y + H) - EXIT_SURFACE_Y) < 0.5)
-      return { done: true, frames: f+1, minFeet };
-    if(P.deaths > 0) break;
-  }
-  return { done: false, frames: maxFrames, minFeet };
-}
-
-{
-  const P = placeInChimney(true);
-  const r = climbChimney(P, 900);
-  console.log('chimney w/ ability : ' + (r.done
-    ? `CLIMBED in ${r.frames} frames (${(r.frames/60).toFixed(1)}s)`
-    : `FAILED — best height ${((12*TILE - r.minFeet)/TILE).toFixed(2)} tiles`));
-  check(r.done, 'chimney must be climbable with wall jump');
-}
-{
-  const P = placeInChimney(false);
-  const r = climbChimney(P, 900);
-  const gained = (12*TILE - r.minFeet)/TILE;
-  console.log('chimney w/o ability: ' + (r.done
-    ? 'CLIMBED — gauntlet is NOT gated!'
-    : `blocked OK (best climb ${gained.toFixed(2)} tiles of 10 needed)`));
-  check(!r.done, 'chimney must be impossible without wall jump');
-}
-
-/* --- single-wall: one tall wall, nothing else in reach --- */
+/* ============ single wall must be bounded ============ */
 {
   const rows = Array.from({length: 30}, () => ' '.repeat(28) + '##');
   rows.push('#'.repeat(30));
@@ -147,116 +87,232 @@ function climbChimney(P, maxFrames){
   const P = makePlayer();
   P.x = 28*TILE - W - 2; P.y = 30*TILE - H; P.px = P.x; P.py = P.y;
   for(let i = 0; i < 30; i++) step(P, {});
-  const startFeet = P.y + H; let minFeet = startFeet, jumpHeld = false;
+  const startFeet = feet(P); let minFeet = startFeet, jumpHeld = false;
   for(let f = 0; f < 900; f++){
     let jump = !jumpHeld;
     if(!P.grounded && touching(P) === 0) jump = jumpHeld;
     step(P, { right: true, jump });
     jumpHeld = jump;
-    minFeet = Math.min(minFeet, P.y + H);
+    minFeet = Math.min(minFeet, feet(P));
   }
   const gained = (startFeet - minFeet)/TILE;
-  console.log(`single-wall climb  : peak ${gained.toFixed(2)} tiles over 15s ` +
-              (gained < 8 ? '(bounded OK)' : '— UNBOUNDED?'));
+  console.log(`single-wall climb  : peak ${gained.toFixed(2)} tiles (bounded ${gained < 8 ? 'OK' : 'NO'})`);
   check(gained < 8, 'one wall must not be infinitely climbable');
 }
 
-/* ============================================================
-   Dash gauntlet: the 9-tile gap in the top ledge (cols 124-132,
-   surface row 2). Jump range is 7.2 tiles — only a dash crosses.
-   ============================================================ */
-function crossDashGap(dash){
-  level.loadRoom(HIGHWALK);
+/* ====== dash mechanics (synthetic 9-tile gap, gated) ====== */
+function synthDashGap(dash){
+  /* ledge cols 0-30, gap 31-39, landing 40-60, all at row 40 */
+  const rows = Array.from({length: 39}, () => '');
+  rows.push('P');
+  rows.push('');
+  rows.push('#'.repeat(31) + ' '.repeat(9) + '#'.repeat(21));
+  level.loadRoom({ id: 'dashGap', tiles: rows });
   const P = makePlayer();
-  P.x = 107*TILE; P.y = 2*TILE - H; P.px = P.x; P.py = P.y;
+  P.x = 20*TILE; P.y = 41*TILE - H; P.px = P.x; P.py = P.y;
   P.abilities.dash = dash;
-  for(let i = 0; i < 30; i++) step(P, {});
-  const EDGE = 124*TILE, LAND = 133*TILE;
+  for(let i = 0; i < 20; i++) step(P, {});
   let dashDone = false;
   for(let f = 0; f < 400; f++){
     const ctrl = { right: true };
-    if(P.grounded ? P.x + W >= EDGE - 4 : true) ctrl.jump = true;   // hold from the lip
-    if(!P.grounded && P.vy > 0.5 && !dashDone && dash){
-      ctrl.dash = true; dashDone = true;                            // dash past the apex
-    }
+    if(P.grounded ? P.x + W >= 31*TILE - 4 : true) ctrl.jump = true;
+    if(!P.grounded && P.vy > 0.5 && !dashDone && dash){ ctrl.dash = true; dashDone = true; }
     step(P, ctrl);
-    if(P.deaths > 0) return { made: false, x: P.x };
-    if(P.grounded && P.x >= LAND) return { made: true, x: P.x };
+    if(P.deaths > 0) return false;
+    if(P.grounded && P.x >= 40*TILE) return true;
   }
-  return { made: false, x: P.x };
+  return false;
 }
 {
-  const r = crossDashGap(true);
-  console.log('dash gap w/ ability : ' + (r.made
-    ? `CROSSED, landed at col ${(r.x/TILE).toFixed(1)}`
-    : 'FAILED to cross'));
-  check(r.made, 'dash gap must be crossable with dash');
-}
-{
-  const r = crossDashGap(false);
-  console.log('dash gap w/o ability: ' + (r.made
-    ? 'CROSSED — gauntlet is NOT gated!'
-    : 'blocked OK (fell into the gap)'));
-  check(!r.made, 'dash gap must be impossible without dash');
+  const a = synthDashGap(true), b = synthDashGap(false);
+  console.log(`dash mechanics     : with ${a ? 'CROSSED' : 'FAILED'}, without ${b ? 'CROSSED (BAD)' : 'blocked OK'}`);
+  check(a && !b, 'dash must cross a 9-tile gap; without must not');
 }
 
-/* --- dash distance on flat ground --- */
-{
-  level.loadRoom(flatRoom());
-  const P = settle();
-  const startX = P.x;
-  step(P, { dash: true });
-  for(let f = 0; f < 40; f++) step(P, {});
-  console.log(`ground dash dist: ${((P.x-startX)/TILE).toFixed(2)} tiles (${(P.x-startX).toFixed(1)}px + skid)`);
-  check(P.x-startX > 48, 'dash should cover at least its 48px core distance');
-}
-
-/* ============================================================
-   Barge gauntlet: drop off the landing platform's right end
-   (cols 147-151) into the sealed corridor (ceiling row 6, floor
-   row 10) blocked by a full-height hoarding at col 158.
-   ============================================================ */
-{
-  level.loadRoom(HIGHWALK);
-  check(level.tileAt(158,7) === 'H' && level.tileAt(158,8) === 'H' &&
-        level.tileAt(158,9) === 'H', 'hoarding column at 158,7-9');
-  check(level.tileAt(152,6) === '#' && level.tileAt(169,6) === '#', 'corridor ceiling ends');
-  check(level.tileAt(147,10) === '=' && level.tileAt(168,10) === '=', 'corridor floor ends');
-  check(level.tileAt(146,6) === '#' && level.tileAt(146,9) === '#', 'shaft divider wall');
-}
-function bargeCorridor(barge){
-  level.loadRoom(HIGHWALK);
+/* ====== barge mechanics (synthetic corridor, gated) ====== */
+function synthBarge(barge){
+  /* floor row 41, ceiling row 37, full-height hoarding at col 20 */
+  const rows = Array.from({length: 37}, () => '');
+  rows.push('#'.repeat(40));                                       // ceiling
+  rows.push(' '.repeat(20) + 'H');
+  rows.push('P' + ' '.repeat(19) + 'H');
+  rows.push(' '.repeat(20) + 'H');
+  rows.push('#'.repeat(40));                                       // floor
+  level.loadRoom({ id: 'bargeHall', tiles: rows });
   const P = makePlayer();
-  P.x = 136*TILE; P.y = 2*TILE - H; P.px = P.x; P.py = P.y;
+  P.x = 8*TILE; P.y = 41*TILE - H; P.px = P.x; P.py = P.y;
   P.abilities.barge = barge;
   for(let i = 0; i < 20; i++) step(P, {});
-  const FLOOR_FEET = 10*TILE, GOAL = 162*TILE;
-  let barged = false, maxX = P.x;
-  for(let f = 0; f < 900; f++){
+  let barged = false;
+  for(let f = 0; f < 600; f++){
     const ctrl = { right: true };
-    if(!barged && P.grounded && Math.abs(P.y + H - FLOOR_FEET) < 1.2 && P.x + W >= 158*TILE - 24){
-      ctrl.barge = true; barged = true;            // shoulder-first into the hoarding
-    }
+    if(!barged && P.grounded && P.x + W >= 20*TILE - 24){ ctrl.barge = true; barged = true; }
     step(P, ctrl);
-    maxX = Math.max(maxX, P.x);
-    if(P.deaths > 0) return { made: false, maxX, died: true };
-    if(P.grounded && P.x >= GOAL) return { made: true, maxX };
+    if(P.x >= 26*TILE) return true;
   }
-  return { made: false, maxX };
+  return false;
 }
 {
-  const r = bargeCorridor(true);
-  console.log('barge w/ ability   : ' + (r.made
-    ? `BROKE THROUGH, reached col ${(r.maxX/TILE).toFixed(1)}`
-    : `FAILED (max col ${(r.maxX/TILE).toFixed(1)}${r.died ? ', died' : ''})`));
-  check(r.made, 'corridor must be passable with barge');
+  const a = synthBarge(true), b = synthBarge(false);
+  console.log(`barge mechanics    : with ${a ? 'BROKE THROUGH' : 'FAILED'}, without ${b ? 'PASSED (BAD)' : 'blocked OK'}`);
+  check(a && !b, 'barge must break a hoarding wall; without must not');
+}
+
+/* ================================================================
+   Estate-route proofs against the real level.
+   ================================================================ */
+function placeOnRoute(x, surfaceRow, abilities = {}){
+  level.loadRoom(HIGHWALK);
+  const P = makePlayer();
+  P.x = x; P.y = surfaceRow*TILE - H; P.px = P.x; P.py = P.y;
+  Object.assign(P.abilities, abilities);
+  for(let i = 0; i < 20; i++) step(P, {});
+  return P;
+}
+
+/* structural sanity of the generated level */
+{
+  level.loadRoom(HIGHWALK);
+  check(level.tileAt(7,35) === 'B' && level.tileAt(105,35) === 'B' &&
+        level.tileAt(176,19) === 'B' && level.tileAt(260,7) === 'B' &&
+        level.tileAt(322,35) === 'B', 'all five benches present');
+  check(level.tileAt(130,36) === '-' && level.tileAt(133,36) === '-', 'scuffed line at secret');
+  check(level.tileAt(70,41) === 'W' && level.tileAt(330,40) === 'W', 'water under bridge and stones');
+  check(level.tileAt(118,36) === '=' && level.tileAt(121,36) === '=', 'shaft floor');
+  check(!level.solidAt(122,34) && !level.solidAt(122,35), 'shaft door to the pocket');
+}
+
+/* --- service shaft: 16-tile wall-jump climb (cols 118-121) --- */
+function climbShaft(P, exitY, maxFrames){
+  let jumpHeld = false, minFeet = feet(P);
+  for(let f = 0; f < maxFrames; f++){
+    const ft = feet(P);
+    const cleared = ft <= exitY - 2;
+    const t = touching(P);
+    let wantJump = false;
+    if(P.grounded) wantJump = true;
+    else if(cleared) wantJump = false;
+    else if(t === 1)  wantJump = ft >= exitY + 39;                     // right wall: don't overshoot
+    else if(t === -1) wantJump = ft <= exitY + 26 || ft >= exitY + 54; // left wall: finish band, or low climb
+    const jump = wantJump ? !jumpHeld : jumpHeld;
+    const dir = cleared ? 1 : (t !== 0 ? t : (P.grounded ? 1 : (P.vx < 0 ? -1 : 1)));
+    step(P, { left: dir === -1, right: dir === 1, jump });
+    jumpHeld = jump;
+    minFeet = Math.min(minFeet, feet(P));
+    if(P.grounded && Math.abs(feet(P) - exitY) < 1.2 && P.x >= 122*TILE)
+      return { done: true, frames: f+1, minFeet };
+    if(P.deaths > 0) break;
+  }
+  return { done: false, frames: maxFrames, minFeet };
 }
 {
-  const r = bargeCorridor(false);
-  console.log('barge w/o ability  : ' + (r.made
-    ? 'PASSED — gauntlet is NOT gated!'
-    : `blocked OK (stopped at col ${(r.maxX/TILE).toFixed(1)} of 158)`));
-  check(!r.made && r.maxX < 158*TILE, 'corridor must be impassable without barge');
+  const P = placeOnRoute(119*TILE + 2, 36);
+  const r = climbShaft(P, 20*TILE, 1800);
+  console.log('shaft w/ wall jump : ' + (r.done
+    ? `CLIMBED 16 tiles in ${r.frames} frames (${(r.frames/60).toFixed(1)}s)`
+    : `FAILED — best ${((36*TILE - r.minFeet)/TILE).toFixed(2)} tiles`));
+  check(r.done, 'shaft must be climbable with wall jump');
+}
+{
+  const P = placeOnRoute(119*TILE + 2, 36, { wallJump: false });
+  const r = climbShaft(P, 20*TILE, 900);
+  const gained = (36*TILE - r.minFeet)/TILE;
+  console.log('shaft w/o ability  : ' + (r.done
+    ? 'CLIMBED — route is NOT gated!'
+    : `blocked OK (best ${gained.toFixed(2)} of 16 tiles)`));
+  check(!r.done, 'shaft must need the wall jump');
+}
+
+/* --- trench 1 (cols 20-22, 5 deep): wall-jump escape --- */
+{
+  const P = placeOnRoute(21*TILE, 41);
+  let jumpHeld = false, out = false;
+  for(let f = 0; f < 600 && !out; f++){
+    const t = touching(P);
+    const wantJump = P.grounded || t !== 0;
+    const jump = wantJump ? !jumpHeld : jumpHeld;
+    step(P, { right: true, jump });
+    jumpHeld = jump;
+    if(P.grounded && feet(P) <= 36*TILE + 1) out = true;
+  }
+  console.log(`trench escape      : ${out ? 'OUT via wall jumps' : 'STUCK'}`);
+  check(out, 'intro trench must be escapable');
+}
+
+/* --- run-jump gap proofs along the route --- */
+function runJump(startX, surfaceRow, edgeX, landX, landRow, maxF = 300){
+  const P = placeOnRoute(startX, surfaceRow);
+  for(let f = 0; f < maxF; f++){
+    const ctrl = { right: true };
+    if(P.grounded ? P.x + W >= edgeX - 4 : true) ctrl.jump = true;
+    step(P, ctrl);
+    if(P.deaths > 0) return false;
+    if(P.grounded && P.x >= landX && Math.abs(feet(P) - landRow*TILE) < 1.2) return true;
+  }
+  return false;
+}
+{
+  const ok = runJump(72*TILE, 36, 79*TILE, 84*TILE, 36);
+  console.log(`bridge gap (5)     : ${ok ? 'crossed' : 'FAILED'}`);
+  check(ok, 'bridge 5-tile gap must be jumpable');
+}
+{
+  const ok = runJump(148*TILE, 20, 154*TILE, 159*TILE, 20);
+  console.log(`highwalk gap (5)   : ${ok ? 'crossed' : 'FAILED'}`);
+  check(ok, 'highwalk 5-tile gap must be jumpable');
+}
+{
+  const ok = runJump(159*TILE, 20, 166*TILE, 172*TILE, 20);
+  console.log(`highwalk gap (6)   : ${ok ? 'crossed' : 'FAILED'}`);
+  check(ok, 'highwalk 6-tile gap must be jumpable');
+}
+{
+  /* tower interior shaft: 12-tile wall-jump climb (cols 222-225) */
+  const P = placeOnRoute(223*TILE, 20);
+  const r = climbShaft(P, 8*TILE, 1800);
+  console.log('tower shaft climb  : ' + (r.done
+    ? `CLIMBED 12 tiles in ${r.frames} frames`
+    : `FAILED — best ${((20*TILE - r.minFeet)/TILE).toFixed(2)} tiles`));
+  check(r.done, 'tower shaft must be climbable with wall jump');
+}
+
+/* --- secret alcove: drop in, jump out via the step --- */
+{
+  const P = placeOnRoute(131*TILE, 36);      // standing on the scuffed line
+  let inAlcove = false;
+  for(let f = 0; f < 300 && !inAlcove; f++){
+    step(P, { right: true });                // walk off the pocket edge
+    if(P.grounded && Math.abs(feet(P) - 40*TILE) < 1.2) inAlcove = true;
+  }
+  /* onto the step (cols 138-139, top row 37), then jump out left */
+  let onStep = false;
+  for(let f = 0; f < 300 && !onStep; f++){
+    step(P, { right: true, jump: P.grounded || P.vy < 0 });   // full-height hops
+    if(P.grounded && Math.abs(feet(P) - 37*TILE) < 1.2) onStep = true;
+  }
+  /* bleed the rightward momentum on the step, then one full jump left */
+  for(let f = 0; f < 60 && !(P.grounded && P.vx <= 0); f++) step(P, { left: true });
+  let out = false;
+  for(let f = 0; f < 300 && !out; f++){
+    const jump = f < 22;
+    step(P, { left: true, jump });
+    if(f > 22 && P.grounded && Math.abs(feet(P) - 36*TILE) < 1.2 && P.x < 134*TILE) out = true;
+  }
+  console.log(`secret alcove      : ${inAlcove ? 'entered' : 'MISSED'}, ${onStep ? 'stepped up' : 'NO STEP'}, ${out ? 'escaped' : 'STUCK'}`);
+  check(inAlcove && out, 'alcove must be enterable and escapable');
+}
+
+/* --- water kills; benches set the respawn point --- */
+{
+  const P = placeOnRoute(5*TILE, 36);
+  for(let f = 0; f < 40; f++) step(P, { right: true });        // stroll across the bench
+  const marked = Math.abs(P.checkpoint.x - 7*TILE) < 0.5;
+  P.x = 60*TILE; P.px = P.x;                                   // carry on from the bridge
+  for(let f = 0; f < 300 && P.deaths === 0; f++) step(P, { right: true });   // walk into the first bridge gap
+  const atBench = Math.abs(P.x - 7*TILE) < 2;
+  console.log(`water + checkpoint : bench ${marked ? 'marked' : 'NOT MARKED'}, ` +
+    `${P.deaths > 0 ? 'drowned' : 'NO DEATH'}, respawned ${atBench ? 'at bench' : `at x=${P.x.toFixed(0)} (BAD)`}`);
+  check(marked && P.deaths > 0 && atBench, 'water must kill and respawn at the last bench');
 }
 
 process.exit(exitCode);
