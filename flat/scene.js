@@ -694,7 +694,7 @@ interactables.push({
     { when: 'open',   box: [-1.75, 0.737, -4.01, -1.61, 0.75, -3.95],    rgb: [1.7, 1.45, 0.6] },  // key halo
     // halo pad under the coffee-table note ('note_key') — same taken-gating
     // as the drawer glint: the note stays readable, the glow dies with the key
-    { when: 'any',    box: [-3.41, 0.342, 2.71, -3.16, 0.348, 3.07],     rgb: [1.25, 1.05, 0.55] },
+    { when: 'any',    box: [-3.41, 0.342, 2.71, -3.16, 0.348, 3.07],     rgb: [1.5, 1.2, 0.45] },
   ],
 });
 

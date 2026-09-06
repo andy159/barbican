@@ -381,6 +381,7 @@ export function drawInteriorProps(ctx, cx, cy){
     if(p.type === 'curtain')   drawSafetyCurtain(ctx, p, cx, cy);
     if(p.type === 'screen')    drawMothlight(ctx, p, cx, cy);
     if(p.type === 'projector') drawProjector(ctx, p, cx, cy);
+    if(p.type === 'poster')    drawPoster(ctx, p, cx, cy);
   }
 
   /* bar stools in front of the counter */
@@ -517,6 +518,39 @@ function drawMothlight(ctx, p, cx, cy){
   spill.addColorStop(0, `rgba(244,238,225,${sa})`); spill.addColorStop(1, 'rgba(244,238,225,0)');
   ctx.fillStyle = spill;
   ctx.fillRect(x - w, y - hgt, w*3, hgt*3);
+}
+
+/* The MOTHLIGHT one-sheet outside Cinema 1: cream field, pressed
+   moth-wing pairs in sepia, stacked title lettering. Static — it's
+   a poster, not the film. */
+function drawPoster(ctx, p, cx, cy){
+  const x = p.x0*TILE - cx, y = p.y0*TILE - cy;
+  const w = (p.x1 - p.x0 + 1)*TILE, h = (p.y1 - p.y0 + 1)*TILE;
+  if(x + w < -10 || x > VIEW_W + 10) return;
+  ctx.fillStyle = '#141110'; ctx.fillRect(x-2, y-2, w+4, h+4);      // frame
+  ctx.fillStyle = '#2b241d'; ctx.fillRect(x-2, y+h+1, w+4, 1);      // drop shadow
+  ctx.fillStyle = '#efe8d8'; ctx.fillRect(x, y, w, h);              // the sheet
+  /* pressed wing pairs, fixed composition */
+  const wing = (px, py, s, col, a) => {
+    ctx.globalAlpha = a; ctx.fillStyle = col;
+    ctx.beginPath(); ctx.ellipse(px-3*s, py, 4*s, 2.4*s,  0.5, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(px+3*s, py, 4*s, 2.4*s, -0.5, 0, 7); ctx.fill();
+    ctx.fillRect(px-0.5*s, py-1.5*s, s, 4*s);
+    ctx.globalAlpha = 1;
+  };
+  wing(x + w*0.30, y + 9,  1.1, '#b98a3c', 0.55);
+  wing(x + w*0.72, y + 15, 0.8, '#7d5a33', 0.45);
+  wing(x + w*0.50, y + 22, 1.4, '#8a6a3a', 0.50);
+  /* title, stacked to fit the sheet */
+  ctx.fillStyle = '#3b2a1a'; ctx.font = '7px monospace';
+  ctx.fillText('MOTH',  x + 4, y + h - 20);
+  ctx.fillText('LIGHT', x + 4, y + h - 12);
+  ctx.fillStyle = '#8a6a3a';
+  ctx.fillText('1963', x + 7, y + h - 4);
+  /* NOW SHOWING strip */
+  ctx.fillStyle = '#c46a1e'; ctx.fillRect(x, y - 6, w, 5);
+  ctx.fillStyle = '#1a1410'; ctx.font = '7px monospace';
+  ctx.fillText('NOW SHOWING', x + 1, y - 1);
 }
 
 /* ================================================================

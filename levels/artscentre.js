@@ -98,6 +98,7 @@ export const ARTSCENTRE = {
   props: [
     {"type":"curtain","tx":91,"y0":3,"y1":26},
     {"type":"projector","tx":215,"ty":36},
+    {"type":"poster","x0":205,"y0":38,"x1":208,"y1":44},
     {"type":"screen","x0":300,"y0":32,"x1":317,"y1":47},
   ],
 };
