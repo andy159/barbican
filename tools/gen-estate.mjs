@@ -67,6 +67,8 @@ set(228,229,25,31,'T');                     // shaft A east wall
 set(228,233,24,24,'#');                     // LEVEL 15 mezzanine slab
 set(232,233,17,23,'T');                     // shaft B west wall
 set(238,239,17,31,'T');                     // shaft B east wall
+set(230,233,25,31,'T');                     // fill the dead pocket under the mezzanine
+                                            // (the 234-237 slot becomes a recovery shaft)
 set(216,233,16,16,'#'); set(238,243,16,16,'#');   // LEVEL 28 slab (shaft B mouth 234-237)
 set(220,221,8,13,'T');                      // shaft C east wall (door rows 14-15)
 set(240,243,7,13,'T');                      // upper mass east (headroom over LEVEL 28)
@@ -104,6 +106,7 @@ const signs = [
   [126,30,'SPEED HIGHWALK →'],
   [196,30,'CROMWELL TOWER →'],
   [217,30,'LOBBY'],
+  [224,28,'STAIRS ↑'],
   [233,22,'LEVEL 15'],
   [241,15,'LEVEL 28'],
   [222,4,'LEVEL 43 · ROOF'],

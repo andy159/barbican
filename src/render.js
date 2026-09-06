@@ -61,6 +61,13 @@ export function stepAmbience(){
    painted floor numbers (03 at the lobby to 43 at the roof), and warm
    little stairwell lights. */
 function drawInterior(cx, cy, alpha){
+  /* paint only within the room's interior volumes — the estate stays
+     visible through doors and beyond the tower's walls */
+  ctx.save();
+  ctx.beginPath();
+  for(const [rx0,ry0,rx1,ry1] of (level.currentRoom().interiors || []))
+    ctx.rect(rx0*TILE - cx, ry0*TILE - cy, (rx1-rx0+1)*TILE, (ry1-ry0+1)*TILE);
+  ctx.clip();
   ctx.globalAlpha = alpha;
   ctx.fillStyle = '#221e1a'; ctx.fillRect(0,0,VIEW_W,VIEW_H);
   const y0 = Math.floor(cy/TILE), y1 = Math.floor((cy+VIEW_H)/TILE);
@@ -87,6 +94,7 @@ function drawInterior(cx, cy, alpha){
     }
   }
   ctx.globalAlpha = 1;
+  ctx.restore();
 }
 
 /* ---------------- render ---------------- */

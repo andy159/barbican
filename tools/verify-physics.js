@@ -318,6 +318,16 @@ for(const [name, fn] of gaps){
   check(ok, 'the shaft-B mouth must be jumpable heading west');
 }
 {
+  /* falling into the shaft-B mouth must not be a softlock: the 234-237
+     slot climbs back to LEVEL 28 from the lobby floor */
+  const P = placeOnRoute(235*TILE, 16);          // stand over the mouth...
+  for(let f = 0; f < 200 && feet(P) < 32*TILE - 1; f++) step(P, {});   // ...and drop it
+  const fell = Math.abs(feet(P) - 32*TILE) < 1.2;
+  const r0 = climbShaft(P, 16*TILE, 238*TILE, 1200);
+  console.log(`mouth recovery     : ${fell ? 'fell to the lobby floor' : 'NO FALL'}, ${r0.done ? 'climbed back OK' : 'STUCK (softlock!)'}`);
+  check(fell && r0.done, 'the mouth drop must be recoverable');
+}
+{
   const r = climbShaft(placeOnRoute(217*TILE, 16), 6*TILE, 220*TILE, 1200);
   console.log('tower shaft C      : ' + (r.done ? `CLIMBED to the roof in ${r.frames}f` : 'FAILED'));
   check(r.done, 'shaft C must reach the roof');
