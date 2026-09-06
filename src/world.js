@@ -6,8 +6,9 @@ import * as level from './level.js';
 import { respawn } from './player.js';
 import { HIGHWALK } from '../levels/highwalk.js';
 import { ARTSCENTRE } from '../levels/artscentre.js';
+import { CONSERVATORY } from '../levels/conservatory.js';
 
-export const WORLD = [HIGHWALK, ARTSCENTRE];
+export const WORLD = [HIGHWALK, ARTSCENTRE, CONSERVATORY];
 let idx = 0;
 
 export function initWorld(startId = null){
@@ -24,6 +25,7 @@ export function checkExit(P){
   if(!level.overlapsChar(P.x, P.y, P.w, P.h, 'E')) return;
   idx = (idx + 1) % WORLD.length;
   level.loadRoom(WORLD[idx]);
+  Object.assign(P.abilities, WORLD[idx].abilities || {});
   P.checkpoint = { x: level.spawn.x, y: level.spawn.y };
   respawn(P);                                    // place at spawn, brief flash
   setTitle();

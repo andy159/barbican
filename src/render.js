@@ -13,6 +13,7 @@ import { cam, VIEW_W, VIEW_H } from './camera.js';
 import { interiorFrame, drawInteriorBackdrop, drawInteriorTile,
          drawInteriorProps, drawInteriorOverlay } from './interior.js';
 import * as ponds from './ponds.js';
+import * as CONS from './conservatory.js';   // conservatory backdrop/tile skins
 
 let ctx = null;
 export function bindCanvas(canvas){
@@ -52,6 +53,7 @@ let frame = 0;                              // ambience clock (bobbing pickups)
 let insideT = 0;                            // 0 outdoors → 1 fully interior
 export function stepAmbience(){
   frame++;
+  if(level.currentRoom()?.backdrop === 'conservatory'){ CONS.stepAmbience(); return; }
   for(const m of motes){
     m.y += m.s;
     m.x += Math.sin(m.y*0.08 + m.ph)*0.18;
@@ -132,10 +134,12 @@ export function render(P, alpha, debugOn, fps){
   /* interior rooms (arts centre etc.) swap the whole backdrop and tile
      skins via src/interior.js; outdoor rooms get the daylight stack */
   const interiorRoom = !!(level.currentRoom() && level.currentRoom().interior);
+  const consMode = level.currentRoom().backdrop === 'conservatory';
   if(interiorRoom){ interiorFrame(P); drawInteriorBackdrop(ctx, cx, cy); }
+  else if(consMode) CONS.backdrop(ctx, cx, cy);
   else backdropDaylight(P, cx, cy);
 
-  drawScene(P, alpha, cx, cy, interiorRoom, debugOn, fps);
+  drawScene(P, alpha, cx, cy, interiorRoom, consMode, debugOn, fps);
 }
 
 function backdropDaylight(P, cx, cy){
@@ -182,7 +186,7 @@ function backdropDaylight(P, cx, cy){
   }
 }
 
-function drawScene(P, alpha, cx, cy, interiorRoom, debugOn, fps){
+function drawScene(P, alpha, cx, cy, interiorRoom, consMode, debugOn, fps){
   const pondsOn = !interiorRoom && level.currentRoom().id === 'estate-route' &&
                   cx + VIEW_W >= 272*TILE;
   /* tiles — only the visible range */
@@ -196,8 +200,9 @@ function drawScene(P, alpha, cx, cy, interiorRoom, debugOn, fps){
       if(empty && !inRect) continue;
       const sx = tx*TILE - cx, sy = ty*TILE - cy;
       if(interiorRoom && !empty){ drawInteriorTile(ctx, t, tx, ty, sx, sy); continue; }
-      if(t === 'w' || t === 'F') continue;         // drawn by the ponds pass
       const topExposed = !solidAt(tx,ty-1);
+      if(consMode && !empty && CONS.tileSkin(ctx, t, tx, ty, sx, sy, topExposed, P)) continue;
+      if(!consMode && (t === 'w' || t === 'F')) continue;   // drawn by the ponds pass
       if(empty){
         /* nothing to draw — the facade overlay below closes the skin */
       }else if(t === 'W'){
@@ -376,6 +381,8 @@ function drawScene(P, alpha, cx, cy, interiorRoom, debugOn, fps){
   if(interiorRoom){
     /* beam, gloom vignette, pickup card */
     drawInteriorOverlay(ctx, cx, cy, P);
+  }else if(consMode){
+    CONS.front(ctx, cx, cy, P);
   }else{
     if(pondsOn) ponds.overlay(ctx, cx, cy, frame, P);
     /* bright atmospheric haze at the base (fades away in the tower) */

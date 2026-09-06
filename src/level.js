@@ -42,7 +42,7 @@ export function tileAt(tx, ty){
 export function solidAt(tx, ty){
   const t = tileAt(tx, ty);
   return t === '#' || t === '=' || t === 'H' || t === '-' || t === 'T' ||
-         t === '<' || t === '>' || t === 'F';
+         t === '<' || t === '>' || t === 'F' || t === 'V';
 }
 
 /* does the AABB overlap any tile of the given character? (water, benches) */

@@ -1,5 +1,6 @@
 /* Fixed 60Hz timestep loop with accumulator + render interpolation. */
 import { initWorld, checkExit } from './world.js';
+import { currentRoom } from './level.js';
 import { makePlayer, respawn, step } from './player.js';
 import { stepCamera, cam, VIEW_W, VIEW_H } from './camera.js';
 import { bindCanvas, render, stepAmbience } from './render.js';
@@ -8,6 +9,7 @@ import { bindInput, heldLeft, heldRight, heldUp, heldDown,
 
 initWorld();
 const P = makePlayer();
+Object.assign(P.abilities, currentRoom().abilities || {});
 
 /* debug spawn override: ?at=tx,ty drops the player at a tile position */
 {

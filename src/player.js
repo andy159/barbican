@@ -271,6 +271,8 @@ function pitCheck(P){
   }
 
   const drowned = level.overlapsChar(P.x, P.y, P.w, P.h, 'W');
-  if(drowned || P.y > level.ROOM_H*TILE + 24){ P.deaths++; respawn(P); }
+  /* cactus spikes ('^') kill on touch — hitbox inset a little for mercy */
+  const spiked = level.overlapsChar(P.x+2, P.y+3, P.w-4, P.h-4, '^');
+  if(drowned || spiked || P.y > level.ROOM_H*TILE + 24){ P.deaths++; respawn(P); }
   if(P.flash > 0) P.flash--;
 }

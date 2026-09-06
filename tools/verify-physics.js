@@ -10,6 +10,7 @@
 import * as level from '../src/level.js';
 import { makePlayer, step } from '../src/player.js';
 import { HIGHWALK } from '../levels/highwalk.js';
+import { CONSERVATORY } from '../levels/conservatory.js';
 
 const TILE = level.TILE;
 const W = 8, H = 14;              // player box (matches makePlayer)
@@ -667,17 +668,18 @@ for(const [name, sx, srow, edge, lx, lrow] of CINE_GAPS){
   check(marked && reachedExit, 'exit must be reachable from the last bench with dash');
 }
 
-/* --- world flow: walking into 'E' loops back to the estate route --- */
+/* --- world flow: arts exit leads on to the conservatory (with dash) --- */
 {
   const { initWorld, checkExit } = await import('../src/world.js');
   initWorld('arts-centre');
   const P = makePlayer();
   P.x = 348*TILE; P.y = 47*TILE - H; P.px = P.x; P.py = P.y;   // inside the exit door
   checkExit(P);
-  const swapped = level.currentRoom().id === 'estate-route';
+  const swapped = level.currentRoom().id === 'conservatory';
   const atSpawn = Math.abs(P.x - level.spawn.x) < 0.5 && Math.abs(P.checkpoint.x - level.spawn.x) < 0.5;
-  console.log(`world flow         : exit ${swapped ? 'loops to estate-route' : 'DID NOT SWITCH'}, spawn ${atSpawn ? '+ checkpoint reset' : 'WRONG'}`);
-  check(swapped && atSpawn, 'E tile must switch level and reset spawn/checkpoint');
+  const dashKept = P.abilities.dash === true;   // room grants keep the dash for standalone starts
+  console.log(`world flow         : exit ${swapped ? 'leads to the conservatory' : 'DID NOT SWITCH'}, spawn ${atSpawn ? '+ checkpoint reset' : 'WRONG'}, dash ${dashKept ? 'granted' : 'MISSING'}`);
+  check(swapped && atSpawn && dashKept, 'E tile must advance the world and grant room abilities');
 }
 
 
@@ -737,6 +739,306 @@ for(const [name, sx, srow, edge, lx, lrow] of CINE_GAPS){
   console.log(`cascade climb      : ${out ? 'CLIMBED to the way out' : 'FAILED'}, bench ${rested ? 'marked' : 'NOT MARKED'}`);
   check(out, 'the cascade steps must be climbable to the way out');
   check(rested, 'the way-out bench must set the checkpoint');
+}
+
+/* ================================================================
+   Conservatory proofs (level 3, 336x60). Player arrives with
+   wallJump + dash. All mandatory dash gaps are 9 tiles — proven
+   above the no-dash coyote-abuse envelope (8 is crossable, 9 not).
+   ================================================================ */
+function placeC(x, surfaceRow, abilities = {}){
+  level.loadRoom(CONSERVATORY);
+  const P = makePlayer();
+  P.x = x; P.y = surfaceRow*TILE - H; P.px = P.x; P.py = P.y;
+  Object.assign(P.abilities, { dash: true }, abilities);
+  for(let i = 0; i < 20; i++) step(P, {});
+  return P;
+}
+
+/* structural sanity of the generated level */
+{
+  level.loadRoom(CONSERVATORY);
+  const benches = [[8,51],[113,51],[131,35],[204,23]];
+  check(benches.every(([x,y]) => level.tileAt(x,y) === 'B'), 'conservatory: all four benches present');
+  check(level.tileAt(130,52) === '-' && level.tileAt(133,52) === '-', 'conservatory: scuffed line at secret');
+  check(level.tileAt(27,54) === 'W' && level.tileAt(60,54) === 'W', 'conservatory: koi ponds present');
+  check([[240,23],[257,26],[273,29],[293,29],[309,32]].every(([x,y]) => level.tileAt(x,y) === '^'),
+        'conservatory: arid house cacti placed');
+  check(level.tileAt(334,40) === 'E' && level.tileAt(335,41) === 'E', 'conservatory: exit door present');
+  check(!level.solidAt(122,50) && !level.solidAt(122,51), 'conservatory: shaft A west door');
+  check(!level.solidAt(128,50) && !level.solidAt(128,51), 'conservatory: shaft A east door');
+  check(!level.solidAt(134,34) && !level.solidAt(134,35), 'conservatory: shaft B door');
+  check(level.solidAt(60,52) && level.solidAt(175,24), 'conservatory: vine platforms are solid');
+  check(!level.solidAt(241,23) && !level.solidAt(334,40), 'conservatory: cacti and exit are non-solid');
+}
+
+/* --- entry walk + arrival abilities --- */
+{
+  const P = placeC(2*TILE, 52);
+  check(P.abilities.dash === true, 'conservatory: default proof player has the dash');
+  for(let f = 0; f < 200 && P.x < 20*TILE; f++) step(P, { right: true });
+  const ok = P.grounded && P.x >= 20*TILE && Math.abs(feet(P) - 52*TILE) < 1.2;
+  console.log(`cons entry walk    : ${ok ? 'walked the entrance terrace' : 'BLOCKED'}`);
+  check(ok, 'conservatory entrance must be walkable');
+}
+
+/* --- generic conservatory hop: run right, jump at edge, dash mid-air --- */
+function hopC(P, edgeX, landMinX, landRow, dashDelay = 3, maxF = 400){
+  let air = -1, dashed = false;
+  for(let f = 0; f < maxF; f++){
+    const ctrl = { right: true };
+    if(P.grounded ? P.x + W >= edgeX - 4 : true) ctrl.jump = true;
+    if(!P.grounded){
+      air++;
+      if(!dashed && air >= dashDelay && P.abilities.dash){ ctrl.dash = true; dashed = true; }
+    }
+    step(P, ctrl);
+    if(P.deaths > 0) return false;
+    if(P.grounded && P.x >= landMinX && Math.abs(feet(P) - landRow*TILE) < 1.2) return true;
+  }
+  return false;
+}
+
+/* adversarial no-dash bot: edge jumps at several offsets + coyote-delay jumps */
+function noDashCrossesC(startX, row, edgeX, landMinX, landRow){
+  for(let delay = 0; delay <= 7; delay++)
+    for(const off of [4, 2, 0]){
+      const P = placeC(startX, row, { dash: false });
+      let air = -1, ok = false;
+      for(let f = 0; f < 400 && !ok; f++){
+        const ctrl = { right: true };
+        if(P.grounded){
+          if(delay === 0 && P.x + W >= edgeX - off) ctrl.jump = true;
+          air = -1;
+        }else{
+          air++;
+          if(delay === 0 || air >= delay - 1) ctrl.jump = true;
+        }
+        step(P, ctrl);
+        if(P.deaths > 0) break;
+        if(P.grounded && P.x >= landMinX && Math.abs(feet(P) - landRow*TILE) < 1.2) ok = true;
+      }
+      if(ok) return true;
+    }
+  return false;
+}
+
+/* --- dash gap classes: passable with dash, blocked without --- */
+const dashGapsC = [
+  ['pond 1 (9, runway)',    4*TILE, 52,  23*TILE,  32*TILE, 52],
+  ['vine hop (9, vine)',   58*TILE, 52,  63*TILE,  72*TILE, 52],
+  ['roof walk (9, deck)', 150*TILE, 24, 165*TILE, 174*TILE, 24],
+  ['arid dash (9)',       275*TILE, 30, 279*TILE, 288*TILE, 30],
+];
+for(const [name, sx, row, edgeX, landX, landRow] of dashGapsC){
+  const P = placeC(sx, row);
+  const a = hopC(P, edgeX, landX, landRow);
+  const b = noDashCrossesC(sx, row, edgeX, landX, landRow);
+  console.log(`cons ${name.padEnd(19)}: with dash ${a ? 'crossed' : 'FAILED'}, without ${b ? 'CROSSED (BAD)' : 'blocked OK'}`);
+  check(a && !b, `conservatory ${name} must need the dash`);
+}
+
+/* --- vine chains: koi court (52) and roof walk (24), dash refresh per landing --- */
+function chainC(startX, row, targetX, maxF = 4000){
+  const P = placeC(startX, row);
+  let air = -1, dashed = false, landings = 0, wasGrounded = true;
+  for(let f = 0; f < maxF; f++){
+    const ctrl = { right: true };
+    if(P.grounded){
+      if(!wasGrounded) landings++;
+      wasGrounded = true; air = -1; dashed = false;
+      /* +1: after a dash landing, feet can rest a fraction above the tile */
+      const footTy = Math.floor((P.y + H + 1)/TILE);
+      const aheadTx = Math.floor((P.x + W + 2)/TILE);
+      if(!level.solidAt(aheadTx, footTy)) ctrl.jump = true;
+    }else{
+      wasGrounded = false; air++;
+      ctrl.jump = true;
+      if(!dashed && air >= 3){ ctrl.dash = true; dashed = true; }
+    }
+    step(P, ctrl);
+    if(P.deaths > 0) return { done: false, landings };
+    if(P.grounded && P.x >= targetX) return { done: true, landings };
+  }
+  return { done: false, landings };
+}
+{
+  const r = chainC(34*TILE, 52, 112*TILE);
+  console.log(`cons koi court     : ${r.done ? `chained the vines (${r.landings} landings)` : 'DROWNED/'+r.landings}`);
+  check(r.done && r.landings >= 4, 'koi court vine chain must be crossable, one dash per hop');
+}
+{
+  const r = chainC(145*TILE, 24, 236*TILE + 2);
+  console.log(`cons roof walk     : ${r.done ? `crossed under the glass (${r.landings} landings)` : 'FELL/'+r.landings}`);
+  check(r.done && r.landings >= 4, 'roof walk chain must be crossable');
+}
+
+/* --- shaft A: enterable, 16-tile wall-jump climb, gated --- */
+{
+  const P = placeC(112*TILE, 52);
+  for(let f = 0; f < 200 && P.x < 124*TILE; f++) step(P, { right: true });
+  const ok = P.grounded && P.x >= 124*TILE && Math.abs(feet(P) - 52*TILE) < 1.2;
+  console.log(`cons shaft A entry : ${ok ? 'walked in at ground level' : 'BLOCKED'}`);
+  check(ok, 'shaft A must be enterable on foot');
+}
+{
+  const r = climbShaft(placeC(124*TILE + 2, 52), 36*TILE, 128*TILE, 1800);
+  console.log('cons shaft A       : ' + (r.done ? `CLIMBED 16 tiles in ${r.frames}f` : 'FAILED'));
+  check(r.done, 'shaft A must reach the mezzanine');
+}
+{
+  const r = climbShaft(placeC(124*TILE + 2, 52, { wallJump: false }), 36*TILE, 128*TILE, 900);
+  console.log('cons shaft A gate  : ' + (r.done ? 'CLIMBED (BAD)' : 'blocked without wall jump OK'));
+  check(!r.done, 'shaft A must need the wall jump');
+}
+
+/* --- mezzanine door walk + shaft B climb to the flytower roof --- */
+{
+  const P = placeC(129*TILE, 36);
+  for(let f = 0; f < 200 && P.x < 137*TILE; f++) step(P, { right: true });
+  const ok = P.grounded && P.x >= 137*TILE && Math.abs(feet(P) - 36*TILE) < 1.2;
+  console.log(`cons shaft B door  : ${ok ? 'walked through' : 'BLOCKED'}`);
+  check(ok, 'shaft B door must be walkable');
+}
+{
+  const r = climbShaft(placeC(137*TILE, 36), 24*TILE, 140*TILE, 1800);
+  console.log('cons shaft B       : ' + (r.done ? `CLIMBED to the flytower roof in ${r.frames}f` : 'FAILED'));
+  check(r.done, 'shaft B must reach the flytower roof');
+}
+{
+  const r = climbShaft(placeC(137*TILE, 36, { wallJump: false }), 24*TILE, 140*TILE, 900);
+  console.log('cons shaft B gate  : ' + (r.done ? 'CLIMBED (BAD)' : 'blocked without wall jump OK'));
+  check(!r.done, 'shaft B must need the wall jump');
+}
+
+/* --- Arid House: scripted crossing, no cactus touched (0 deaths) --- */
+{
+  /* Existence proof by stage-wise search: from each grounded waypoint,
+     sweep (trigger x, jump hold / dash delay) until one lands in the next
+     safe window with zero deaths — i.e. an input sequence exists that
+     crosses the whole Arid House without touching a cactus. */
+  function runStageC(S0, act, winX0, winX1, winRow){
+    const P = structuredClone(S0);
+    let fired = false, air = -1, dashed = false, hold = 0;
+    for(let f = 0; f < 400; f++){
+      const ctrl = { right: true };
+      if(!fired && P.grounded && P.x + W >= act.trig){
+        fired = true; hold = act.dash ? 99 : act.hold;
+      }
+      if(fired){
+        if(hold > 0){ ctrl.jump = true; hold--; }
+        if(!P.grounded){
+          air++;
+          if(act.dash && !dashed && air >= act.dd){ ctrl.dash = true; dashed = true; }
+        }
+      }
+      step(P, ctrl);
+      if(P.deaths > S0.deaths) return null;
+      if(fired && air >= 0 && P.grounded &&
+         P.x >= winX0 && P.x <= winX1 && Math.abs(feet(P) - winRow*TILE) < 1.2)
+        return P;
+    }
+    return null;
+  }
+  /* [name, trigger sweep (tiles), holds (null = dash), window x0..x1, row] */
+  const aridStages = [
+    ['hop 240',    [236,239], [5,6,7,8,9,10],     241.5, 244.5, 24],
+    ['gap to T2',  [245,246], [8,10,12,14,16,18], 249,   254.2, 27],
+    ['hop 257',    [253,256], [5,6,7,8,9,10],     258.5, 260.5, 27],
+    ['gap to T3',  [261,262], [8,10,12,14,16,18], 268,   270.2, 30],
+    ['hop 273',    [269,272], [5,6,7,8,9,10],     274.5, 276.5, 30],
+    ['dash to T4', [277,278], null,               288,   290.5, 30],
+    ['hop 293',    [289,292], [5,6,7,8,9,10],     294.5, 296.5, 30],
+    ['gap to T5',  [297,298], [8,10,12,14,16,18], 304,   306.2, 33],
+    ['hop 309',    [305,308], [5,6,7,8,9,10],     310.5, 312.5, 33],
+    ['gap to ledge',[313,314],[10,12,14,16,18,20],320,   325,   37],
+  ];
+  let S = placeC(236*TILE, 24);
+  let stuck = null;
+  for(const [name, [t0,t1], holds, x0, x1, row] of aridStages){
+    let next = null;
+    outer:
+    for(let trig = t0*TILE; trig <= t1*TILE && !next; trig += 2){
+      if(holds === null){
+        for(const dd of [2,3,4,5,6]){
+          next = runStageC(S, { trig, dash: true, dd }, x0*TILE, x1*TILE, row);
+          if(next) break outer;
+        }
+      }else{
+        for(const hold of holds){
+          next = runStageC(S, { trig, hold }, x0*TILE, x1*TILE, row);
+          if(next) break outer;
+        }
+      }
+    }
+    if(!next){ stuck = name; break; }
+    S = next;
+  }
+  let done = false;
+  if(!stuck){
+    for(let f = 0; f < 400 && !done; f++){          // walk off the ledge to the exit floor
+      step(S, { right: true });
+      if(S.deaths > 0) break;
+      if(S.grounded && S.x >= 331*TILE && Math.abs(feet(S) - 42*TILE) < 1.2) done = true;
+    }
+  }
+  console.log(`cons arid house    : ${done ? 'crossed clean, no cactus touched' : `FAILED at ${stuck || 'final walk'}`}`);
+  check(done && S.deaths === 0, 'arid house route must be crossable without touching a cactus');
+}
+
+/* --- cacti kill; exit door reachable and overlapping --- */
+{
+  const P = placeC(236*TILE, 24);
+  for(let f = 0; f < 200 && P.deaths === 0; f++) step(P, { right: true });
+  const back = Math.abs(P.x - 4*TILE) < 2;      // respawn = spawn, no bench touched
+  console.log(`cons cactus kill   : ${P.deaths > 0 ? 'spiked' : 'NO DEATH'}, respawned ${back ? 'at spawn' : 'ELSEWHERE (BAD)'}`);
+  check(P.deaths > 0 && back, 'cacti must kill on touch and respawn at the checkpoint');
+}
+{
+  const P = placeC(321*TILE, 37);
+  let reached = false;
+  for(let f = 0; f < 400 && !reached; f++){
+    step(P, { right: true });
+    if(level.overlapsChar(P.x, P.y, W, H, 'E')) reached = true;
+  }
+  console.log(`cons way out       : ${reached ? 'stepped into the exit door' : 'NEVER REACHED'}`);
+  check(reached && P.deaths === 0, 'exit must be reachable from the last ledge');
+}
+
+/* --- secret: scuffed line past the shaft, drop in, step up, jump out --- */
+{
+  const P = placeC(124*TILE, 52);
+  let inAlcove = false;
+  for(let f = 0; f < 400 && !inAlcove; f++){
+    step(P, { right: true });
+    if(P.grounded && Math.abs(feet(P) - 56*TILE) < 1.2) inAlcove = true;
+  }
+  let onStep = false;
+  for(let f = 0; f < 300 && !onStep; f++){
+    step(P, { right: true, jump: P.grounded || P.vy < 0 });
+    if(P.grounded && Math.abs(feet(P) - 53*TILE) < 1.2) onStep = true;
+  }
+  for(let f = 0; f < 60 && !(P.grounded && P.vx <= 0); f++) step(P, { left: true });
+  let out = false;
+  for(let f = 0; f < 300 && !out; f++){
+    step(P, { left: true, jump: f < 22 });
+    if(f > 22 && P.grounded && Math.abs(feet(P) - 52*TILE) < 1.2 && P.x < 134*TILE) out = true;
+  }
+  console.log(`cons secret store  : ${inAlcove ? 'entered' : 'MISSED'}, ${onStep ? 'stepped up' : 'NO STEP'}, ${out ? 'escaped' : 'STUCK'}`);
+  check(inAlcove && onStep && out, 'gardeners store must be enterable and escapable');
+}
+
+/* --- koi ponds kill; benches set the respawn point --- */
+{
+  const P = placeC(111*TILE, 52);
+  for(let f = 0; f < 60; f++) step(P, { right: true });
+  const marked = Math.abs(P.checkpoint.x - 113*TILE) < 0.5;
+  P.x = 66*TILE; P.px = P.x;                     // drop over open koi-pond water
+  for(let f = 0; f < 300 && P.deaths === 0; f++) step(P, {});
+  const atBench = Math.abs(P.x - 113*TILE) < 2;
+  console.log(`cons koi + bench   : bench ${marked ? 'marked' : 'NOT MARKED'}, ` +
+    `${P.deaths > 0 ? 'drowned' : 'NO DEATH'}, respawned ${atBench ? 'at bench' : 'ELSEWHERE (BAD)'}`);
+  check(marked && P.deaths > 0 && atBench, 'koi ponds must kill and respawn at the last bench');
 }
 
 process.exit(exitCode);
