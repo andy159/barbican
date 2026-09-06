@@ -197,9 +197,8 @@ boxes.push(B([-2.43, 1.3, -1.55, -2.425, 1.5, -1.15], WHITE, false));
 boxes.push(B([-5.71, 0, 1.15, -4.86, 0.12, 3.1], TEAK));
 boxes.push(B([-5.71, 0.12, 1.15, -4.86, 0.45, 3.1], OAT));
 boxes.push(B([-5.71, 0.45, 1.15, -5.42, 0.75, 3.1], '#cfc4b2'));
-// screenprint over sofa
-boxes.push(B([-5.71, 1.1, 1.85, -5.69, 2.0, 2.55], FRAME, false));
-boxes.push(B([-5.69, 1.14, 1.89, -5.68, 1.96, 2.51], MUSTARD, false));
+// (the mustard screenprint moved to the study — the Finnish paintings section
+//  below hangs Lake Keitele over the sofa instead)
 // String shelving 2-bay, white ladders + teak shelves
 boxes.push(B([-5.71, 0, 3.42, -5.68, 2.0, 3.46], '#e8e4da', false));
 boxes.push(B([-5.71, 0, 4.18, -5.68, 2.0, 4.22], '#e8e4da', false));
@@ -494,6 +493,82 @@ boxes.push(B([-5.9, 2.46, -6.45, 0.1, 2.62, -6.30], '#9aa0a2', false));
 for (let gx = -5.7; gx < -0.2; gx += 0.28) {
   boxes.push(B([gx, 2.52, -6.3, gx + 0.07, 2.6, -4.95], '#9aa0a2', false));
 }
+
+// ===================================================== PAINTINGS (all Finnish)
+// Framed color-block evocations; thin layered boxes stepped off the wall face
+// so nothing z-fights. All non-solid.
+
+const PFRAME = '#3a322c';
+
+// Helene Schjerfbeck — Self-Portrait with Black Background (1915).
+// The prominent, sun-lit north living wall above the G-Plan sideboard.
+// Black-umber ground, her name block-lettered (and half-erased) across the
+// top, pale tilted face, rose cheek, dark cap of hair, chalky collar, and the
+// red pot of brushes lower right.
+boxes.push(B([-3.97, 1.18, 0.85, -3.38, 1.92, 0.875], PFRAME, false));
+boxes.push(B([-3.95, 1.20, 0.875, -3.40, 1.90, 0.882], '#262019', false)); // ground
+boxes.push(B([-3.90, 1.82, 0.882, -3.72, 1.85, 0.886], '#b3a794', false)); // HELENE…
+boxes.push(B([-3.68, 1.82, 0.882, -3.50, 1.845, 0.886], '#6e6354', false)); // …erased
+boxes.push(B([-3.90, 1.22, 0.882, -3.45, 1.42, 0.887], '#372f26', false)); // shoulders
+boxes.push(B([-3.83, 1.32, 0.888, -3.52, 1.47, 0.892], '#cfc4b0', false)); // collar
+boxes.push(B([-3.80, 1.50, 0.882, -3.60, 1.76, 0.888], '#e0d2bd', false)); // face
+boxes.push(B([-3.77, 1.44, 0.888, -3.58, 1.54, 0.892], '#e0d2bd', false)); // tilted jaw
+boxes.push(B([-3.82, 1.68, 0.888, -3.58, 1.80, 0.893], '#1c1512', false)); // hair cap
+boxes.push(B([-3.655, 1.52, 0.893, -3.60, 1.575, 0.897], '#bc8b80', false)); // rose cheek
+boxes.push(B([-3.76, 1.63, 0.893, -3.72, 1.655, 0.897], '#2a211c', false)); // eyes
+boxes.push(B([-3.67, 1.63, 0.893, -3.63, 1.655, 0.897], '#2a211c', false));
+boxes.push(B([-3.72, 1.505, 0.893, -3.66, 1.525, 0.897], '#96554a', false)); // mouth
+boxes.push(B([-3.50, 1.24, 0.888, -3.43, 1.36, 0.893], '#a83226', false)); // red brush pot
+boxes.push(B([-3.485, 1.36, 0.888, -3.45, 1.44, 0.892], '#c9b48c', false)); // brushes
+
+// Akseli Gallen-Kallela — Lake Keitele (1905), over the sofa on the west wall.
+// Silvery-blue water, pale sky, dark far shore with its reflection, island at
+// right, and the stepped silver-grey zigzag wake streaks.
+boxes.push(B([-5.71, 1.23, 1.73, -5.687, 1.82, 2.62], PFRAME, false));
+boxes.push(B([-5.687, 1.25, 1.75, -5.680, 1.80, 2.60], '#9fb2bd', false)); // water
+boxes.push(B([-5.680, 1.70, 1.75, -5.675, 1.80, 2.60], '#dfe5e2', false)); // sky
+boxes.push(B([-5.680, 1.63, 1.75, -5.675, 1.70, 2.60], '#2f3f52', false)); // far shore
+boxes.push(B([-5.680, 1.58, 1.75, -5.676, 1.63, 2.60], '#55697a', false)); // reflection
+boxes.push(B([-5.675, 1.60, 1.75, -5.670, 1.70, 1.93], '#263646', false)); // island
+boxes.push(B([-5.675, 1.50, 1.82, -5.670, 1.53, 2.25], '#ccd8d6', false)); // zigzag wake
+boxes.push(B([-5.675, 1.44, 2.05, -5.670, 1.465, 2.50], '#ccd8d6', false));
+boxes.push(B([-5.675, 1.37, 1.78, -5.670, 1.395, 2.20], '#ccd8d6', false));
+boxes.push(B([-5.675, 1.30, 2.00, -5.670, 1.325, 2.45], '#ccd8d6', false));
+
+// Hugo Simberg — The Wounded Angel (1903), hall north wall, facing the entry.
+// Grey-green park, pale sky over the water band, sandy path, two dark bearers
+// carrying the white angel on a stretcher; white blindfold, red speck.
+boxes.push(B([-1.97, 1.10, -2.55, -1.18, 1.68, -2.525], PFRAME, false));
+boxes.push(B([-1.95, 1.12, -2.525, -1.20, 1.66, -2.518], '#7d8a76', false)); // park
+boxes.push(B([-1.95, 1.53, -2.518, -1.20, 1.66, -2.513], '#c3ccc9', false)); // sky
+boxes.push(B([-1.95, 1.48, -2.518, -1.20, 1.53, -2.513], '#8fa0a3', false)); // water
+boxes.push(B([-1.95, 1.12, -2.518, -1.20, 1.23, -2.513], '#9a8f7c', false)); // path
+boxes.push(B([-1.85, 1.16, -2.513, -1.75, 1.50, -2.508], '#26221e', false)); // rear bearer
+boxes.push(B([-1.44, 1.15, -2.513, -1.34, 1.52, -2.508], '#211d1a', false)); // front bearer
+boxes.push(B([-1.80, 1.235, -2.513, -1.36, 1.25, -2.508], '#b9a887', false)); // stretcher
+boxes.push(B([-1.80, 1.265, -2.513, -1.36, 1.28, -2.508], '#b9a887', false));
+boxes.push(B([-1.74, 1.22, -2.510, -1.66, 1.38, -2.5055], '#e4e2d8', false)); // wings
+boxes.push(B([-1.52, 1.22, -2.510, -1.44, 1.36, -2.5055], '#e4e2d8', false));
+boxes.push(B([-1.70, 1.28, -2.513, -1.48, 1.44, -2.507], '#ecebe4', false)); // angel
+boxes.push(B([-1.62, 1.44, -2.513, -1.54, 1.50, -2.507], '#d9cfc0', false)); // head
+boxes.push(B([-1.63, 1.465, -2.507, -1.53, 1.485, -2.503], '#f6f4ee', false)); // blindfold
+boxes.push(B([-1.585, 1.30, -2.507, -1.555, 1.325, -2.503], '#a8342a', false)); // red speck
+
+// Helene Schjerfbeck — Green Apples (still life), bedroom west wall above the
+// south bedside table. Chalky ground, table band, three apples.
+boxes.push(B([-5.71, 1.03, -1.84, -5.69, 1.35, -1.45], PFRAME, false));
+boxes.push(B([-5.69, 1.05, -1.82, -5.684, 1.33, -1.47], '#cfc9bb', false)); // ground
+boxes.push(B([-5.684, 1.05, -1.82, -5.679, 1.14, -1.47], '#a89a85', false)); // table
+boxes.push(B([-5.681, 1.115, -1.78, -5.677, 1.135, -1.52], '#b3a793', false)); // shadow
+boxes.push(B([-5.679, 1.13, -1.76, -5.674, 1.20, -1.69], '#7fa055', false)); // apples
+boxes.push(B([-5.679, 1.135, -1.66, -5.674, 1.21, -1.585], '#a8b060', false));
+boxes.push(B([-5.679, 1.13, -1.56, -5.674, 1.185, -1.50], '#b06a45', false));
+
+// (relocated) abstract 60s screenprint — study east wall, over the desk
+boxes.push(B([2.085, 1.15, 2.55, 2.11, 1.95, 3.15], FRAME, false));
+boxes.push(B([2.078, 1.19, 2.59, 2.085, 1.91, 3.11], MUSTARD, false));
+boxes.push(B([2.072, 1.30, 2.70, 2.078, 1.80, 2.82], '#2e2a26', false));
+boxes.push(B([2.072, 1.45, 2.90, 2.078, 1.72, 3.05], '#f2ede1', false));
 
 // ============================================================== INTERACTABLES
 

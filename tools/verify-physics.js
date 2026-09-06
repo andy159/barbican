@@ -782,12 +782,12 @@ function placeC(x, surfaceRow, abilities = {}){
   check(level.tileAt(27,54) === 'W' && level.tileAt(60,54) === 'W', 'conservatory: koi ponds present');
   check([[240,23],[257,26],[273,29],[293,29],[309,32]].every(([x,y]) => level.tileAt(x,y) === '^'),
         'conservatory: arid house cacti placed');
-  check(level.tileAt(334,40) === 'E' && level.tileAt(335,41) === 'E', 'conservatory: exit door present');
+  check(level.tileAt(398,40) === 'E' && level.tileAt(399,41) === 'E', 'conservatory: exit door present (beyond the boss gate)');
   check(!level.solidAt(122,50) && !level.solidAt(122,51), 'conservatory: shaft A west door');
   check(!level.solidAt(128,50) && !level.solidAt(128,51), 'conservatory: shaft A east door');
   check(!level.solidAt(134,34) && !level.solidAt(134,35), 'conservatory: shaft B door');
   check(level.solidAt(60,52) && level.solidAt(175,24), 'conservatory: vine platforms are solid');
-  check(!level.solidAt(241,23) && !level.solidAt(334,40), 'conservatory: cacti and exit are non-solid');
+  check(!level.solidAt(241,23) && !level.solidAt(398,40), 'conservatory: cacti and exit are non-solid');
 }
 
 /* --- entry walk + arrival abilities --- */
@@ -1013,14 +1013,20 @@ function chainC(startX, row, targetX, maxF = 4000){
   check(P.deaths > 0 && back, 'cacti must kill on touch and respawn at the checkpoint');
 }
 {
+  /* the last ledge now leads down to the arena approach: walk off it,
+     land on the approach floor, cross the bench (checkpoint) and stop
+     at the arena lip. The exit itself is proven in the boss proofs. */
   const P = placeC(321*TILE, 37);
-  let reached = false;
-  for(let f = 0; f < 400 && !reached; f++){
+  let onFloor = false, marked = false;
+  for(let f = 0; f < 500; f++){
+    if(P.x >= 340*TILE) break;
     step(P, { right: true });
-    if(level.overlapsChar(P.x, P.y, W, H, 'E')) reached = true;
+    if(P.deaths > 0) break;
+    if(P.grounded && Math.abs(feet(P) - 42*TILE) < 1.2 && P.x >= 331*TILE) onFloor = true;
+    if(Math.abs(P.checkpoint.x - 333*TILE) < 0.5) marked = true;
   }
-  console.log(`cons way out       : ${reached ? 'stepped into the exit door' : 'NEVER REACHED'}`);
-  check(reached && P.deaths === 0, 'exit must be reachable from the last ledge');
+  console.log(`cons approach walk : ${onFloor ? 'reached the arena approach' : 'NEVER ARRIVED'}, bench ${marked ? 'marked' : 'NOT MARKED'}`);
+  check(onFloor && marked && P.deaths === 0, 'approach floor + pre-arena bench must be reachable from the last ledge');
 }
 
 /* --- secret: scuffed line past the shaft, drop in, step up, jump out --- */
@@ -1328,6 +1334,160 @@ function swarmRun(maxF = 1600){
   }
   console.log(`key apex jump      : ${P.keys.flat ? 'caught at full jump height' : 'CLEARED OVER IT (BAD)'}`);
   check(P.keys.flat, 'even a full jump over the key must collect it');
+}
+
+/* ================================================================
+   THE HEAD GARDENER — boss proofs (conservatory final chamber,
+   cols 342-399). The bot reads the exported boss state the way a
+   player reads the telegraphs; every pattern is a pure function of
+   the fight-frame counter, so these runs replay exactly.
+   ================================================================ */
+import { G as BOSS, ARENA, gardenerReset } from '../src/gardener.js';
+
+function placeBoss(x, row){
+  const P = placeC(x, row);                     // fresh room copy
+  gardenerReset();                              // fresh boss
+  return P;
+}
+const bossTick = P => CONSERVATORY.tick(P);     // proves the room wiring too
+
+/* --- structural sanity of the arena --- */
+{
+  level.loadRoom(CONSERVATORY);
+  check(level.tileAt(333,41) === 'B', 'boss: a bench sits right before the arena');
+  check(level.tileAt(397,41) === 'B', 'boss: a bench waits beyond the gate');
+  check([[348,42],[361,42],[374,42],[388,42]].every(([x,y]) => level.solidAt(x,y)),
+        'boss: all four brick islands present');
+  check([[343,43],[354,43],[368,44],[379,43]].every(([x,y]) => level.tileAt(x,y) === 'W'),
+        'boss: koi strips between the islands are lethal water');
+  check(level.solidAt(393,26) && level.solidAt(394,41), 'boss: the gate starts shut');
+  check(level.solidAt(393,42) && level.solidAt(394,42), 'boss: floor continues under the gate');
+  console.log('boss structure     : benches, islands, koi strips, gate OK');
+}
+
+/* --- arena reachable from the last bench (hop the entry pond) --- */
+{
+  const P = placeBoss(331*TILE, 42);
+  for(let f = 0; f < 80; f++){ step(P, { right: P.x < 336*TILE }); bossTick(P); }
+  const marked = Math.abs(P.checkpoint.x - 333*TILE) < 0.5;
+  let onIsland = false;
+  for(let f = 0; f < 300 && !onIsland; f++){
+    const ctrl = { right: true };
+    if(P.grounded ? P.x + W >= 342*TILE - 4 : true) ctrl.jump = true;
+    step(P, ctrl); bossTick(P);
+    if(P.deaths > 0) break;
+    if(P.grounded && P.x >= 345*TILE && Math.abs(feet(P) - 42*TILE) < 1.2) onIsland = true;
+  }
+  console.log(`boss arena entry   : bench ${marked ? 'marked' : 'NOT MARKED'}, ${onIsland ? 'hopped onto island 1' : 'NEVER LANDED'}`);
+  check(marked && onIsland && P.deaths === 0, 'the arena must be reachable from the pre-arena bench');
+}
+
+/* --- a stationary player dies in the first sweep --- */
+{
+  const P = placeBoss(361*TILE, 42);            // island 2, doing nothing
+  for(let f = 0; f < 900 && P.deaths === 0; f++){ step(P, {}); bossTick(P); }
+  console.log(`boss sweep lethal  : ${P.deaths > 0 ? 'stationary player hosed off' : 'SURVIVED (BAD)'}`);
+  check(P.deaths > 0, 'a stationary player must die in the sweep');
+}
+
+/* --- the bot: camp island 4, dash through jets/mist, dash the node --- */
+function gardenerBot(P, maxF, stop){
+  const I4 = ARENA.islands[3];
+  const eastX = I4[1] - 18, westX = I4[0] + 16;
+  let jumping = false;
+  for(let f = 0; f < maxF; f++){
+    const ctrl = {}, m = BOSS.mode, px = P.x;
+    /* station: downstream edge of I4 for sweeps, node approach for vents */
+    let target = eastX;
+    if(m === 'sweepTele' || m === 'sweep'){
+      const d = BOSS.sweepDir;
+      const behind = m === 'sweep' && d*(px + 4 - BOSS.x) < 0;   // already dodged
+      target = (d > 0) === !behind ? eastX : westX;
+    }
+    if(m === 'ventMove' || m === 'vent') target = BOSS.ventX - 26;
+    /* dash upstream through the raking jet just before it arrives */
+    if(m === 'sweep' && P.grounded && P.dashLeft === 0){
+      const d = BOSS.sweepDir;
+      if(d*(px + 4 - BOSS.x) > 0 && Math.abs(px + 4 - BOSS.x) < 26){
+        ctrl.dash = true; ctrl[d > 0 ? 'left' : 'right'] = true;
+      }
+    }
+    /* mist: as the wall envelops the east station, dash east into the
+       gate (the wall stops the dash — no overshoot) to shear the line */
+    if(m === 'mist' && BOSS.mist && !BOSS.mist.pierced && P.grounded && P.dashLeft === 0){
+      if(BOSS.mist.x + BOSS.mist.w/2 > px && BOSS.mist.x - BOSS.mist.w/2 < px + W){
+        ctrl.dash = true; ctrl.right = true;
+      }
+    }
+    /* vent: jump under the node, dash through it near the apex */
+    if(m === 'vent' && !BOSS.hitDone){
+      if(P.grounded && Math.abs(px - target) < 3){ ctrl.jump = true; jumping = true; }
+      else if(jumping && !P.grounded){
+        ctrl.jump = true;
+        if(P.vy > -1.0 && P.dashLeft === 0 && P.dashes > 0){
+          ctrl.dash = true; ctrl.right = true; jumping = false;
+        }
+      }
+    }
+    if(!ctrl.dash && !ctrl.jump && P.grounded && Math.abs(px - target) >= 3){
+      ctrl.left = px > target; ctrl.right = px < target;
+    }
+    step(P, ctrl); bossTick(P);
+    if(P.deaths > 0) return { died: true, f };
+    if(stop()) return { done: true, f };
+  }
+  return { done: false, f: maxF };
+}
+
+/* --- cycle 1 survived + hit 1; then the full escalating fight --- */
+{
+  const P = placeBoss(388*TILE, 42);            // start on island 4
+  const r1 = gardenerBot(P, 8000, () => BOSS.hits >= 1);
+  console.log(`boss cycle 1       : ${r1.done ? `survived, hit 1 landed at f${r1.f}` :
+    r1.died ? `BOT DIED in ${BOSS.mode}` : `NO HIT (stuck in ${BOSS.mode})`}`);
+  check(r1.done, 'the bot must survive cycle 1 and dash the node for hit 1');
+
+  const r2 = gardenerBot(P, 40000, () => BOSS.dead);
+  console.log(`boss full fight    : ${r2.done ? `3 hits, gantry down at f${r2.f}` :
+    r2.died ? `BOT DIED at ${BOSS.hits} hits in ${BOSS.mode}` : `TIMED OUT at ${BOSS.hits} hits`}`);
+  check(r2.done, 'the full fight must be winnable across all three phases');
+  check(!level.solidAt(393,30) && !level.solidAt(394,38), 'the gate must open on the win');
+
+  /* the way out: wait out the crash, walk through the open gate into E */
+  let reached = false;
+  for(let f = 0; f < 900 && !reached; f++){
+    step(P, { right: true }); bossTick(P);
+    if(P.deaths > 0) break;
+    if(level.overlapsChar(P.x, P.y, W, H, 'E')) reached = true;
+  }
+  console.log(`boss way out       : ${reached ? 'walked the open gate into the exit door' : 'BLOCKED'}`);
+  check(reached && P.deaths === 0, 'the exit must be passable after the win');
+}
+
+/* --- pattern restarts on death; hits scored are kept --- */
+{
+  const P = placeBoss(388*TILE, 42);
+  const r1 = gardenerBot(P, 8000, () => BOSS.hits >= 1);
+  /* now stand on island 2 and let the next sweep land */
+  P.x = 361*TILE; P.px = P.x;
+  for(let f = 0; f < 1500 && P.deaths === 0; f++){ step(P, {}); bossTick(P); }
+  const died = P.deaths > 0;
+  step(P, {}); bossTick(P);                     // respawned at the bench: boss idles
+  const kept = BOSS.hits === 1, idled = !BOSS.active && BOSS.frame === 0;
+  console.log(`boss death rules   : ${died ? 'died mid-fight' : 'NO DEATH'}, hits ${kept ? 'kept' : 'LOST'}, pattern ${idled ? 'reset' : 'STILL RUNNING'}`);
+  check(r1.done && died && kept && idled, 'death must restart the pattern but keep the hits');
+}
+
+/* --- world flow: the relocated E still advances the world --- */
+{
+  const { initWorld, checkExit } = await import('../src/world.js');
+  initWorld('conservatory');
+  const P = makePlayer();
+  P.x = 398*TILE; P.y = 42*TILE - H; P.px = P.x; P.py = P.y;
+  checkExit(P);
+  const swapped = level.currentRoom().id === 'estate-route';
+  console.log(`boss exit flow     : ${swapped ? 'E beyond the arena still advances the world' : 'DID NOT SWITCH'}`);
+  check(swapped, 'the relocated exit must still advance the world');
 }
 
 process.exit(exitCode);

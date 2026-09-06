@@ -7,6 +7,7 @@
 import { TILE, tileAt, overlapsChar } from './level.js';
 import * as level from './level.js';
 import { VIEW_W, VIEW_H } from './camera.js';
+import * as GARD from './gardener.js';   // THE HEAD GARDENER boss (final chamber)
 
 /* ---------------- palette ---------------- */
 const C = {
@@ -135,7 +136,7 @@ export function backdrop(ctx, cx, cy){
 
   /* god rays slanting from the glass, over the whole backdrop */
   const pulse = 0.055 + 0.03*Math.sin(clock*0.008);
-  for(let k = 0; k < 22; k++){
+  for(let k = 0; k < 30; k++){
     const x0 = k*150 - cx*0.85;
     if(x0 < -160 || x0 > VIEW_W + 40) continue;
     const top = Math.min(0, 140 - cy*gp);
@@ -145,6 +146,9 @@ export function backdrop(ctx, cx, cy){
     ctx.lineTo(x0+78, VIEW_H); ctx.lineTo(x0+34, VIEW_H);
     ctx.closePath(); ctx.fill();
   }
+
+  /* the boss chamber's glass end-gable, over the jungle layers */
+  GARD.drawBack(ctx, cx, cy);
 }
 
 function rampAt(stops, wy){
@@ -422,6 +426,9 @@ export function tileSkin(ctx, t, tx, ty, sx, sy, topExposed, P){
 export function front(ctx, cx, cy, P){
   const room = level.currentRoom();
 
+  /* THE HEAD GARDENER: rail, gantry, jets, mist, vines, node, wreck */
+  GARD.drawMid(ctx, cx, cy, P);
+
   /* koi — the single saturated accent, cruising their pools */
   for(const k of (room.koi || [])){
     const range = k.x1 - k.x0;
@@ -499,8 +506,8 @@ export function front(ctx, cx, cy, P){
   deep.addColorStop(0,'rgba(5,10,8,0)'); deep.addColorStop(1,'rgba(5,10,8,0.38)');
   ctx.fillStyle = deep; ctx.fillRect(0,VIEW_H-44,VIEW_W,44);
 
-  /* exit halo, above the gloom */
-  if(room.exitGlow){
+  /* exit halo, above the gloom — only once the gantry is dead */
+  if(room.exitGlow && GARD.G.dead){
     const ex = room.exitGlow.tx*TILE + 8 - cx, ey = room.exitGlow.ty*TILE + 8 - cy;
     if(ex > -40 && ex < VIEW_W+40 && ey > -40 && ey < VIEW_H+40){
       const halo = ctx.createRadialGradient(ex,ey,2,ex,ey,34);
@@ -520,4 +527,7 @@ export function front(ctx, cx, cy, P){
     ctx.fillText('THE LINE CONTINUES', VIEW_W/2, VIEW_H/2+5);
     ctx.textAlign = 'left';
   }
+
+  /* boss banner + node pips, above everything */
+  GARD.drawUI(ctx, P);
 }
