@@ -22,6 +22,12 @@ export const TUNING = {
   bufferFrames:  6,      // frames a jump press is remembered
   cornerNudge:   2,      // px of ceiling corner correction
 
+  wallSlideSpeed: 1.1,   // max fall speed while pressed against a wall
+  wallJumpVX:     2.2,   // horizontal kick away from the wall
+  wallJumpVY:     3.3,   // upward speed of a wall jump
+  wallJumpLock:   10,    // frames of horizontal input ignored after a wall jump
+  wallCoyoteFrames: 5,   // grace frames after leaving wall contact
+
   squashLand:    0.55,   // scaleY on hard landing (lower = squashier)
   squashJump:    1.28,   // scaleY on jump
   squashRecover: 0.14,   // lerp speed back to normal

@@ -1,23 +1,25 @@
-/* The Phase 1 test room — '#' concrete, '=' walkway (yellow line on
-   top), 'P' spawn. Missing floor = pit (falls to respawn). 8x8 tiles.
-   Edit freely; run tools/verify-physics.js after physics changes. */
+/* The highwalk test room — '#' concrete, '=' walkway (yellow line on
+   top), 'P' spawn, 'H' hoarding (breaks to barge). Missing floor = pit.
+   8x8 tiles. Gauntlets, left to right: platform hops → wall-jump
+   chimney (10-tile climb, cols 100-107) → top ledge.
+   Run tools/verify-physics.js after editing. */
 export const HIGHWALK = {
   id: 'highwalk',
   tiles: [
 "",
 "",
-"",
-"",
-"",
-"",
-"",
-"",
-"",
-"                                                                                      ### ###",
-"",
-"",
-"                                                                                    ============",
-"                                                                                    ############",
+"                                                                                                          ==========",
+"                                                                                                          ##########",
+"                                                                                                    ##    ##########",
+"                                                                                                    ##    ##",
+"                                                                                                    ##    ##",
+"                                                                                                    ##    ##",
+"                                                                                                    ##    ##",
+"                                                                                      ### ###             ##",
+"                                                                                                          ##",
+"                                                                                                          ##",
+"                                                                                    ======================##",
+"                                                                                    ########################",
 "                                                                                  ##",
 "                                                                                  ##",
 "                                                     ###         ###            ####",
@@ -28,6 +30,9 @@ export const HIGHWALK = {
 "#############  ########   #######     #######                         ##############",
 "#############  ########   #######     #######                         ##############",
   ],
-  planters: [[6,20],[19,20],[29,20],[41,20],[73,20],[94,12]],
-  signs: [{ tx: 86, ty: 6, text: 'PHASE 2 →' }],
+  planters: [[6,20],[19,20],[29,20],[41,20],[73,20],[94,12],[111,2]],
+  signs: [
+    { tx: 86, ty: 6,  text: 'HIGHWALK →' },
+    { tx: 87, ty: 11, text: 'WALL JUMP ↑' },
+  ],
 };

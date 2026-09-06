@@ -15,14 +15,17 @@ export function makePlayer(){
     grounded: false, facing: 1,
     coyote: 0, buffer: 0, cutDone: true,
     prevJump: false,
+    wallCoyote: 0, lastWallDir: 0, inputLock: 0,
     sx: 1, sy: 1,                                // squash/stretch scales
     deaths: 0, flash: 0,
+    abilities: { wallJump: true, dash: false, barge: false, grapple: false },
   };
 }
 
 export function respawn(P){
   P.x = level.spawn.x; P.y = level.spawn.y; P.px = P.x; P.py = P.y;
   P.vx = 0; P.vy = 0; P.sx = 1; P.sy = 1; P.grounded = false;
+  P.wallCoyote = 0; P.lastWallDir = 0; P.inputLock = 0;
   P.flash = 8;
 }
 
@@ -32,9 +35,11 @@ export function step(P, ctrl){
   const T = TUNING;
   P.px = P.x; P.py = P.y;
 
-  /* --- horizontal intent --- */
+  /* --- horizontal intent (ignored briefly after a wall jump) --- */
   const dir = (ctrl.right ? 1 : 0) - (ctrl.left ? 1 : 0);
-  if(dir !== 0){
+  if(P.inputLock > 0){
+    P.inputLock--;
+  }else if(dir !== 0){
     P.facing = dir;
     const a = P.grounded ? T.runAccel : T.airAccel;
     P.vx += a*dir;
@@ -43,6 +48,13 @@ export function step(P, ctrl){
     const f = P.grounded ? T.friction : T.airDrag;
     if(Math.abs(P.vx) <= f) P.vx = 0; else P.vx -= f*Math.sign(P.vx);
   }
+
+  /* --- wall contact (airborne, flush against a solid) --- */
+  let wallDir = 0;
+  if(!P.grounded && P.abilities.wallJump)
+    wallDir = solid(P, P.x+1, P.y) ? 1 : (solid(P, P.x-1, P.y) ? -1 : 0);
+  if(wallDir !== 0){ P.wallCoyote = T.wallCoyoteFrames; P.lastWallDir = wallDir; }
+  else if(P.wallCoyote > 0) P.wallCoyote--;
 
   /* --- jump: buffer + coyote --- */
   if(ctrl.jump && !P.prevJump) P.buffer = T.bufferFrames;
@@ -54,6 +66,16 @@ export function step(P, ctrl){
     P.grounded = false; P.cutDone = false;
     P.sy = T.squashJump; P.sx = 2 - T.squashJump;   // stretch
   }
+  /* wall jump: kick up and away, lock steering so one wall can't be climbed */
+  else if(P.buffer > 0 && !P.grounded && P.wallCoyote > 0){
+    const wd = P.lastWallDir;
+    P.vy = -T.wallJumpVY;
+    P.vx = -wd * T.wallJumpVX;
+    P.facing = -wd;
+    P.inputLock = T.wallJumpLock;
+    P.buffer = 0; P.wallCoyote = 0; P.cutDone = false;
+    P.sy = T.squashJump; P.sx = 2 - T.squashJump;
+  }
   /* variable height: cut velocity once on release */
   if(!ctrl.jump && !P.cutDone && P.vy < 0){
     P.vy *= T.jumpCut; P.cutDone = true;
@@ -63,6 +85,10 @@ export function step(P, ctrl){
   const atApex = !P.grounded && Math.abs(P.vy) < T.apexWindow;
   P.vy += T.gravity * (atApex ? T.apexGravMult : 1);
   if(P.vy > T.maxFall) P.vy = T.maxFall;
+
+  /* --- wall slide: pressing into a wall while falling caps fall speed --- */
+  if(wallDir !== 0 && P.vy > 0 && dir === wallDir && P.vy > T.wallSlideSpeed)
+    P.vy = T.wallSlideSpeed;
 
   /* --- move X, resolve --- */
   const nx = P.x + P.vx;
