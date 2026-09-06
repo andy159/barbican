@@ -14,6 +14,7 @@ import { interiorFrame, drawInteriorBackdrop, drawInteriorTile,
          drawInteriorProps, drawInteriorOverlay } from './interior.js';
 import * as ponds from './ponds.js';
 import * as CONS from './conservatory.js';   // conservatory backdrop/tile skins
+import { renderMothlight } from './mothlight.js';
 
 let ctx = null;
 export function bindCanvas(canvas){
@@ -126,6 +127,12 @@ function drawInterior(cx, cy, alpha){
 
 /* ---------------- render ---------------- */
 export function render(P, alpha, debugOn, fps){
+  /* the Mothlight dream renders itself entirely */
+  if(level.currentRoom().backdrop === 'mothlight'){
+    renderMothlight(ctx, P, alpha, debugOn, fps);
+    return;
+  }
+
   /* capped screen shake (barge impacts) */
   const shakeAmp = P.shake > 0 ? Math.min(2, Math.ceil(P.shake/3)) : 0;
   const shakeX = shakeAmp * (P.shake % 2 ? 1 : -1);
@@ -555,7 +562,7 @@ function drawTerraceBlock(cx){
 /* The small dark figure with the yellow scarf. Drawn on an 8×14 pixel
    grid scaled by the squash factors, mirrored by facing; legs step from
    distance travelled so the walk needs no animation clock. */
-function drawPlayer(P, ix, iy){
+export function drawPlayer(P, ix, iy){
   const w = P.w*P.sx, h = P.h*P.sy;
   const dx = ix + P.w/2 - w/2, dy = iy + P.h - h;
   const ux = w/8, uy = h/14;

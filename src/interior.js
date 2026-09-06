@@ -462,13 +462,41 @@ function drawMothlight(ctx, p, cx, cy){
     ctx.fillStyle = OCHRES[h32(fr, i*11 + 6)%OCHRES.length];
     ctx.globalAlpha = 0.30 + (h32(fr, i*13 + 8)%30)/100;
     ctx.save(); ctx.translate(px, py); ctx.rotate(rot); ctx.scale(sc, sc);
-    if(kind === 0){                               // moth wing pair
-      ctx.beginPath(); ctx.ellipse(-4, 0, 5, 3, 0.5, 0, 7); ctx.fill();
-      ctx.beginPath(); ctx.ellipse( 4, 0, 5, 3, -0.5, 0, 7); ctx.fill();
-      ctx.fillRect(-1, -2, 2, 5);                 // thorax
-    }else if(kind === 1){                         // petal
+    if(kind <= 1){                                // moth wing pair (dominant)
+      const ochre = ctx.fillStyle;
+      /* forewings: broad lobes swept up and outward */
+      ctx.beginPath(); ctx.ellipse(-5, -1, 7, 4, 0.6, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.ellipse( 5, -1, 7, 4, -0.6, 0, 7); ctx.fill();
+      /* hindwings: smaller lobes tucked behind */
+      ctx.beginPath(); ctx.ellipse(-3.5, 3, 4, 2.6, 0.9, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.ellipse( 3.5, 3, 4, 2.6, -0.9, 0, 7); ctx.fill();
+      /* veins radiating from the wing roots (the pressed-wing signature) */
+      ctx.strokeStyle = 'rgba(74,52,28,0.5)'; ctx.lineWidth = 0.7;
+      for(let v = 0; v < 4; v++){
+        const a = 0.2 + v*0.3;
+        ctx.beginPath(); ctx.moveTo(-1, 0); ctx.lineTo(-1 - Math.cos(a)*10, 1 - Math.sin(a)*6); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo( 1, 0); ctx.lineTo( 1 + Math.cos(a)*10, 1 - Math.sin(a)*6); ctx.stroke();
+      }
+      /* scalloped fringe: nick the outer rims back to screen white */
+      ctx.fillStyle = IPAL.screenWhite;
+      for(let e = 0; e < 3; e++){
+        ctx.fillRect(-11.5 + (h32(fr, i*17 + e)%3), -3.5 + e*2.4, 1.5, 1.5);
+        ctx.fillRect(  10 - (h32(fr, i*19 + e)%3), -3.5 + e*2.4, 1.5, 1.5);
+      }
+      /* the odd eyespot on the forewings */
+      if(h32(fr, i*23 + 9)%3 === 0){
+        ctx.fillStyle = 'rgba(60,38,20,0.55)';
+        ctx.beginPath(); ctx.ellipse(-5, -1.5, 1.6, 1.2, 0, 0, 7); ctx.fill();
+        ctx.beginPath(); ctx.ellipse( 5, -1.5, 1.6, 1.2, 0, 0, 7); ctx.fill();
+      }
+      /* furred body + antennae */
+      ctx.fillStyle = ochre;
+      ctx.fillRect(-1, -3, 2, 7);
+      ctx.strokeStyle = 'rgba(60,38,20,0.6)'; ctx.lineWidth = 0.6;
+      ctx.beginPath(); ctx.moveTo(0,-3); ctx.lineTo(-2.5,-6.5); ctx.moveTo(0,-3); ctx.lineTo(2.5,-6.5); ctx.stroke();
+    }else if(kind === 2){                         // petal
       ctx.beginPath(); ctx.ellipse(0, 0, 3, 6, 0, 0, 7); ctx.fill();
-    }else if(kind === 2){                         // grass blade
+    }else if(h32(fr, i*29 + 10)%2 === 0){         // grass blade
       ctx.fillRect(-1, -9, 1.5, 18);
       ctx.fillRect(0.5, -7, 1, 12);
     }else{                                        // seed specks

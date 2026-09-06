@@ -47,6 +47,7 @@ function frame(now){
       jump: heldJump(), dash: heldDash(), barge: heldBarge(),
     });
     checkExit(P);
+    currentRoom().tick?.(P);            // room hook (moth waves, boss fights)
     stepAmbience();
     stepCamera(P);
     acc -= STEP;

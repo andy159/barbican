@@ -1041,4 +1041,222 @@ function chainC(startX, row, targetX, maxF = 4000){
   check(marked && P.deaths > 0 && atBench, 'koi ponds must kill and respawn at the last bench');
 }
 
+/* ================================================================
+   MOTHLIGHT dream-level proofs. The moth choreography is fully
+   deterministic (frame-counter clock, reset on load/death), so these
+   bots replay the exact waves the player will face.
+   ================================================================ */
+import { MOTHLIGHT } from '../levels/mothlight.js';
+import { resetMothlight, liveMoths, isFinished } from '../src/mothlight.js';
+
+const mtick = P => MOTHLIGHT.tick(P);
+
+function mothPlace(x, surfaceRow, abilities = {}){
+  level.loadRoom(MOTHLIGHT);
+  resetMothlight();
+  const P = makePlayer();
+  P.x = x; P.y = surfaceRow*TILE - H; P.px = P.x; P.py = P.y;
+  Object.assign(P.abilities, abilities);
+  for(let i = 0; i < 20; i++) step(P, {});   // settle without the moth clock
+  resetMothlight();                          // ...so every proof starts at frame 0
+  return P;
+}
+
+/* structural sanity of the generated dream */
+{
+  level.loadRoom(MOTHLIGHT);
+  check(MOTHLIGHT.backdrop === 'mothlight', 'room carries the mothlight backdrop flag');
+  check(typeof MOTHLIGHT.tick === 'function', 'room tick hook is wired');
+  check((MOTHLIGHT.emitters || []).length === 9, 'all nine moth emitters present');
+  check(level.spawn.x === 8*TILE && level.spawn.y === 4*TILE, 'spawn high in the white');
+  const markers = [[7,59],[88,59],[103,37]];
+  check(markers.every(([x,y]) => level.tileAt(x,y) === 'B'), 'all three frame markers present');
+  check(level.tileAt(172,33) === 'E' && level.tileAt(174,37) === 'E', 'the tear is torn');
+  check(level.tileAt(92,34) === 'T' && level.tileAt(99,60) === 'T', 'grass stalks rooted');
+  check(!level.solidAt(92,58) && !level.solidAt(93,60), 'stalk-shaft entry open underneath');
+}
+
+/* --- entry: falling into the film is survivable with no input --- */
+{
+  level.loadRoom(MOTHLIGHT);
+  resetMothlight();
+  const P = makePlayer();
+  let f = 0;
+  for(; f < 400 && !(P.grounded && f > 10); f++){ step(P, {}); mtick(P); }
+  const ok = P.deaths === 0 && P.grounded && Math.abs(feet(P) - 60*TILE) < 1.2;
+  console.log(`film entry drift   : ${ok ? `landed on the wing in ${f}f` : 'DIED OR MISSED'}`);
+  check(ok, 'the fall into the film must land safely on the first wing');
+}
+
+/* --- wing-hop gap classes (geometry; the waves are proven below) --- */
+function mothRunJump(startX, surfaceRow, edgeX, landX, landRow, maxF = 300, hold = 99){
+  const P = mothPlace(startX, surfaceRow);
+  let air = 0;
+  for(let f = 0; f < maxF; f++){
+    const ctrl = { right: true };
+    const nearEdge = P.grounded ? P.x + W >= edgeX - 4 : true;
+    if(nearEdge){ if(!P.grounded) air++; ctrl.jump = air <= hold; }
+    step(P, ctrl);
+    if(P.deaths > 0) return false;
+    if(P.grounded && P.x >= landX && Math.abs(feet(P) - landRow*TILE) < 1.2) return true;
+  }
+  return false;
+}
+const mothGaps = [
+  ['wing gap (4)',          () => mothRunJump(10*TILE, 60, 17*TILE, 21*TILE, 60)],
+  ['wing gap (5)',          () => mothRunJump(22*TILE, 60, 28*TILE, 33*TILE, 60)],
+  ['wing gap (4, rise 2)',  () => mothRunJump(34*TILE, 60, 40*TILE, 44*TILE, 58)],
+  ['wing gap (7, drop 4)',  () => mothRunJump(45*TILE, 58, 51*TILE, 58*TILE, 62)],
+  ['wing gap (5, rise 2)',  () => mothRunJump(59*TILE, 62, 67*TILE, 72*TILE, 60)],
+  ['wing gap (6)',          () => mothRunJump(73*TILE, 60, 79*TILE, 85*TILE, 60)],
+];
+for(const [name, fn] of mothGaps){
+  const ok = fn();
+  console.log(`${name.padEnd(19)}: ${ok ? 'crossed' : 'FAILED'}`);
+  check(ok, `${name} must be passable`);
+}
+
+/* --- the whole traverse under live drifter waves --- */
+{
+  const P = mothPlace(6*TILE, 60);
+  let ok = false;
+  for(let f = 0; f < 1400 && !ok; f++){
+    const ctrl = { right: true };
+    const frontX = Math.floor((P.x + W + 3)/TILE);
+    const footY = Math.floor((P.y + H)/TILE);
+    const groundAhead = level.solidAt(frontX, footY) ||
+                        level.solidAt(frontX, footY + 1) ||
+                        level.solidAt(frontX, footY + 2);
+    if(P.grounded ? !groundAhead : true) ctrl.jump = true;
+    step(P, ctrl); mtick(P);
+    if(P.deaths > 0) break;
+    if(P.grounded && P.x >= 86*TILE && Math.abs(feet(P) - 60*TILE) < 1.2) ok = true;
+  }
+  console.log(`traverse w/ waves  : ${ok ? 'crossed under the drifters' : `DIED (${P.deaths})`}`);
+  check(ok, 'the wing traverse must be runnable through the drifter waves');
+}
+
+/* --- grass-blade climb: enter on foot, wall-jump up through darters --- */
+function mothClimb(P, exitY, exitMinX, maxFrames){
+  let jumpHeld = false;
+  for(let f = 0; f < maxFrames; f++){
+    const ft = feet(P);
+    const cleared = ft <= exitY - 2;
+    const t = touching(P);
+    let wantJump = false;
+    if(P.grounded) wantJump = true;
+    else if(cleared) wantJump = false;
+    else if(t === 1)  wantJump = ft >= exitY + 39;
+    else if(t === -1) wantJump = ft <= exitY + 26 || ft >= exitY + 54;
+    const jump = wantJump ? !jumpHeld : jumpHeld;
+    const dir = cleared ? 1 : (t !== 0 ? t : (P.grounded ? 1 : (P.vx < 0 ? -1 : 1)));
+    step(P, { left: dir === -1, right: dir === 1, jump });
+    mtick(P);
+    jumpHeld = jump;
+    if(P.grounded && Math.abs(feet(P) - exitY) < 1.2 && P.x >= exitMinX)
+      return { done: true, frames: f+1 };
+    if(P.deaths > 0) return { done: false, frames: f+1, died: true };
+  }
+  return { done: false, frames: maxFrames };
+}
+{
+  const P = mothPlace(86*TILE, 60);
+  let entered = false;
+  for(let f = 0; f < 200 && !entered; f++){
+    step(P, { right: true }); mtick(P);
+    if(P.grounded && P.x >= 94*TILE && Math.abs(feet(P) - 61*TILE) < 1.2) entered = true;
+  }
+  console.log(`stalk-shaft entry  : ${entered ? 'walked in under the blade' : 'BLOCKED'}`);
+  check(entered, 'the stalk shaft must be enterable on foot');
+}
+{
+  const r = mothClimb(mothPlace(95*TILE, 61), 38*TILE, 100*TILE, 2400);
+  console.log('stalk climb        : ' + (r.done ? `CLIMBED 23 tiles in ${r.frames}f` :
+    r.died ? 'DIED TO A DARTER' : 'FAILED'));
+  check(r.done, 'the grass-blade climb must be completable through the darters');
+}
+{
+  const r = mothClimb(mothPlace(95*TILE, 61, { wallJump: false }), 38*TILE, 100*TILE, 900);
+  console.log('climb w/o ability  : ' + (r.done ? 'CLIMBED (BAD)' : 'blocked OK'));
+  check(!r.done, 'the stalk climb must need the wall jump');
+}
+
+/* --- swarm corridor: a dash-weave bot must get through, and a
+   stationary player must NOT survive (the moths are real) --- */
+function swarmRun(maxF = 1600){
+  const P = mothPlace(103*TILE, 38);       // start at the last frame marker
+  P.checkpoint = { x: 103*TILE, y: 38*TILE - H };
+  let jumpHold = 0;
+  for(let f = 0; f < maxF; f++){
+    const ctrl = { right: true };
+    let low = null, lowDx = 1e9;
+    for(const m of liveMoths()){
+      const dx = m.x - (P.x + W);
+      if(m.y > 288 && dx > -8 && dx < lowDx){ low = m; lowDx = dx; }
+    }
+    if(P.grounded && low && lowDx < 30) jumpHold = 9;
+    if(jumpHold > 0){ ctrl.jump = true; jumpHold--; }
+    if(!P.grounded && P.vy > 0.2 && low && lowDx < 26 && P.dashes > 0) ctrl.dash = true;
+    step(P, ctrl); mtick(P);
+    if(P.deaths > 0) return { ok: false, f, died: true };
+    if(isFinished()) return { ok: true, f };
+  }
+  return { ok: false, f: maxF };
+}
+{
+  const r = swarmRun();
+  console.log(`swarm corridor     : ${r.ok ? `WOVE THROUGH and reached the tear in ${r.f}f` :
+    r.died ? `DIED at f${r.f}` : 'TIMED OUT'}`);
+  check(r.ok, 'the swarm corridor must be beatable by the dash-weave bot');
+}
+{
+  const P = mothPlace(125*TILE, 38);
+  P.checkpoint = { x: 103*TILE, y: 38*TILE - H };
+  let f = 0;
+  for(; f < 900 && P.deaths === 0; f++){ step(P, {}); mtick(P); }
+  const atMarker = Math.abs(P.x - 103*TILE) < 2;
+  console.log(`swarm lethality    : stationary player ${P.deaths > 0 ? `hit at f${f}` : 'SURVIVED (BAD)'}` +
+    `${P.deaths > 0 ? (atMarker ? ', respawned at the marker' : ', respawned ELSEWHERE (BAD)') : ''}`);
+  check(P.deaths > 0 && atMarker, 'standing still in the swarm must be death; respawn at the marker');
+}
+
+/* --- falling out of the film = death, back to the frame marker --- */
+{
+  const P = mothPlace(5*TILE, 60);
+  for(let f = 0; f < 40; f++){ step(P, { right: true }); mtick(P); }   // rest at marker 1
+  const marked = Math.abs(P.checkpoint.x - 7*TILE) < 0.5;
+  P.x = 29*TILE; P.px = P.x;                                           // over a gap
+  for(let f = 0; f < 300 && P.deaths === 0; f++){ step(P, {}); mtick(P); }
+  const atMarker = Math.abs(P.x - 7*TILE) < 2;
+  console.log(`fall out of film   : marker ${marked ? 'set' : 'NOT SET'}, ` +
+    `${P.deaths > 0 ? 'fell to death' : 'NO DEATH'}, respawned ${atMarker ? 'at marker' : 'ELSEWHERE (BAD)'}`);
+  check(marked && P.deaths > 0 && atMarker, 'falling off the wings must kill and respawn at the marker');
+}
+
+/* --- the cinema loop: screen -> dream -> tear -> back in Cinema 1 --- */
+{
+  const { initWorld, checkExit } = await import('../src/world.js');
+  initWorld('arts-centre');
+  const P = makePlayer();
+  P.x = 308*TILE; P.y = 46*TILE - H; P.px = P.x; P.py = P.y;   // in front of the screen
+  checkExit(P);
+  const inDream = level.currentRoom().id === 'mothlight';
+  /* walk the player into the tear and let the reel run out */
+  let woke = false;
+  if(inDream){
+    P.abilities.dash = true;
+    const tearX = 173*TILE;
+    P.x = tearX; P.px = P.x;
+    let feetRow = 0;
+    for(let f = 0; f < 400 && !woke; f++){
+      step(P, {});
+      level.currentRoom().tick?.(P);
+      if(level.currentRoom().id === 'arts-centre') woke = true;
+    }
+  }
+  const atSeat = woke && Math.abs(P.x - 318*TILE) < 2;
+  console.log(`cinema loop        : ${inDream ? 'sucked into the film' : 'PORTAL DEAD'}, ${woke ? 'woke in Cinema 1' : 'NEVER WOKE'}${atSeat ? ' at the seat' : ''}`);
+  check(inDream && woke, 'the screen portal and the tear return must both work');
+}
+
 process.exit(exitCode);

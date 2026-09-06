@@ -1,0 +1,117 @@
+// Generates the MOTHLIGHT dream level (184x68) and writes levels/mothlight.js.
+// The player is inside Stan Brakhage's Mothlight: platforms are pressed
+// moth wings ('='), leaf pulp ('#') and grass-blade stalks ('T');
+// checkpoints are film-frame markers ('B'); 'E' is the bright tear out.
+// Route: fall into the film -> wing-hop traverse (gaps 4/5/4/7/5/6)
+// -> grass-blade wall-jump climb (23 tiles) -> swarm corridor -> WAKE.
+// Hand-edit THIS file, not the output. Run tools/verify-physics.js after.
+import { writeFileSync } from 'node:fs';
+
+const W = 184, H = 68;
+const g = Array.from({length: H}, () => Array(W).fill(' '));
+
+function set(x0, x1, y0, y1, ch, allow = false){
+  for(let y = y0; y <= y1; y++)
+    for(let x = x0; x <= x1; x++){
+      if(!allow && g[y][x] !== ' ' && g[y][x] !== ch)
+        throw new Error(`conflict at ${x},${y}: '${g[y][x]}' vs '${ch}'`);
+      g[y][x] = ch;
+    }
+}
+
+/* ---- S1: falling into the film (cols 0-20). A long safe drift down
+   pure white; the landing wing is directly under the spawn. ---- */
+set(8,8,4,4,'P');
+set(4,16,60,60,'=');                        // landing wing
+set(4,16,61,62,'#');                        // pressed-matter mass beneath
+set(7,7,59,59,'B');                         // frame marker 1: where you land
+
+/* ---- S2: wing-hop traverse (cols 21-91), gaps 4/5/4/7/5/6 ---- */
+set(21,27,60,60,'='); set(21,27,61,61,'#'); // gap 4 from the landing wing
+set(33,39,60,60,'='); set(33,39,61,61,'#'); // gap 5
+set(44,50,58,58,'='); set(44,50,59,59,'#'); // gap 4, rising 2
+set(58,66,62,62,'='); set(58,66,63,63,'#'); // gap 7, dropping 4
+set(72,78,60,60,'='); set(72,78,61,61,'#'); // gap 5, rising 2
+set(85,91,60,60,'='); set(85,91,61,61,'#'); // gap 6
+set(88,88,59,59,'B');                       // frame marker 2: before the climb
+
+/* ---- S3: grass-blade climb (cols 92-99). Two stalks 4 tiles apart;
+   entry is the 3-tile opening under the left stalk; the right stalk
+   runs to the floor so the shaft can't leak into the void. ---- */
+set(92,99,61,61,'=');                       // shaft floor wing
+set(92,99,62,63,'#');
+set(92,93,34,57,'T');                       // left stalk (walk in under it)
+set(98,99,39,60,'T');                       // right stalk, rooted to the floor
+
+/* ---- S4: swarm corridor (cols 98-183 floor, ceiling 106-168).
+   One long dash-weave under a leaf-pulp canopy; marker just before. ---- */
+set(98,183,38,38,'=');                      // corridor + exit-chamber floor
+set(100,183,39,40,'#');
+set(103,103,37,37,'B');                     // frame marker 3: before the swarm
+set(106,168,30,30,'#');                     // canopy ceiling
+set(106,168,29,29,'#');
+
+/* ---- S5: the tear (cols 172-174). Bright white rip in the film. ---- */
+set(172,174,33,37,'E');
+
+const rows = g.map(r => r.join('').replace(/ +$/,''));
+
+/* Deterministic moth choreography. Each emitter fires every `period`
+   frames at `phase` (on the mothlight frame clock, which resets on
+   room load and on death) while the player's centre x is inside
+   `zone` [px]. Cruise speed comes from MOTH_TUNING by `kind`; `dir`
+   is the flight direction; flight is closed-form:
+   x = sx + kindVX*dir*t, y = sy + amp*sin(freq*t + born-jitter). */
+const emitters = [
+  /* wing-hop traverse — slow drifters wobbling through the jump arcs
+     (lanes sit above standing height: dodge by timing your hops).
+     rel:true → sx is an offset ahead of the player, so the waves come
+     at you wherever you are (spawn is still frame-deterministic) */
+  { zone:[150,764],  sx:336, rel:true, sy:436, dir:-1, amp:9, freq:0.045, period:210, phase:20,  kind:'drift' },
+  { zone:[150,764],  sx:352, rel:true, sy:442, dir:-1, amp:6, freq:0.05,  period:260, phase:200, kind:'drift' },
+  { zone:[300,764],  sx:344, rel:true, sy:452, dir:-1, amp:4, freq:0.04,  period:300, phase:140, kind:'drift' },
+  /* grass-blade climb — fast darters crossing the stalks */
+  { zone:[736,800],  sx:856,  sy:356, dir:-1, amp:1.5, freq:0.2,   period:150, phase:0,   kind:'dart' },
+  { zone:[736,800],  sx:856,  sy:420, dir:-1, amp:1.5, freq:0.2,   period:150, phase:75,  kind:'dart' },
+  /* swarm corridor — floor lane (jump it), pinch partner (air-dash),
+     mid lane (punishes lazy hops), high lane (owns the ceiling) */
+  { zone:[840,1300],  sx:1340, sy:297, dir:-1, amp:2,   freq:0.09, period:95,  phase:0,  kind:'swarm' },
+  { zone:[1020,1300], sx:1340, sy:297, dir:-1, amp:2,   freq:0.09, period:190, phase:28, kind:'swarm' },
+  { zone:[840,1300],  sx:1350, sy:283, dir:-1, amp:2.5, freq:0.07, period:95,  phase:48, kind:'swarm' },
+  { zone:[840,1300],  sx:1360, sy:256, dir:-1, amp:3,   freq:0.05, period:110, phase:70, kind:'swarm' },
+];
+
+const signs = [
+  [5,57,'THE FILM HAS YOU'],
+  [22,57,'FOLLOW THE THREAD →'],
+  [93,55,'CLIMB THE BLADES ↑'],
+  [99,35,"DON'T STOP →"],
+  [170,31,'WAKE ↑'],
+];
+
+const out = `/* MOTHLIGHT — the dream level, generated by tools/gen-mothlight.mjs.
+   Inside Stan Brakhage's Mothlight (1963): pressed moth wings ('='),
+   leaf pulp ('#'), grass-blade stalks ('T'), film-frame markers ('B'),
+   and the bright tear out ('E'). backdrop: 'mothlight' dispatches the
+   whole render to src/mothlight.js; tick runs the deterministic moth
+   choreography. Edit the generator, not this file.
+   Run tools/verify-physics.js after regenerating. */
+import { mothTick } from '../src/mothlight.js';
+
+export const MOTHLIGHT = {
+  id: 'mothlight',
+  backdrop: 'mothlight',
+  tick: mothTick,
+  tiles: [
+${rows.map(r => JSON.stringify(r) + ',').join('\n')}
+  ],
+  emitters: [
+${emitters.map(e => '    ' + JSON.stringify(e) + ',').join('\n')}
+  ],
+  signs: [
+${signs.map(([tx,ty,text]) => `    { tx: ${tx}, ty: ${ty}, text: ${JSON.stringify(text)} },`).join('\n')}
+  ],
+};
+`;
+writeFileSync(new URL('../levels/mothlight.js', import.meta.url), out);
+console.log(`written: ${W}x${H}, ${rows.reduce((n,r)=>n+r.length,0)} chars, ${emitters.length} emitters`);

@@ -45,3 +45,17 @@ export const TUNING = {
   squashJump:    1.28,   // scaleY on jump
   squashRecover: 0.14,   // lerp speed back to normal
 };
+
+/* ================================================================
+   MOTH_* — the Mothlight dream level's hazard constants (appended;
+   nothing above may change). Units: px per frame at 60 fps.
+   ================================================================ */
+export const MOTH_TUNING = {
+  MOTH_telegraph: 30,    // frames of flutter-shadow warning before a moth is live
+  MOTH_boxW:      6,     // moth collision box width  (centered on the moth)
+  MOTH_boxH:      5,     // moth collision box height
+  MOTH_life:      900,   // frames before a stray moth leaves the film
+  MOTH_driftVX:   0.85,  // slow drifter cruise speed (waves fly at the player)
+  MOTH_dartVX:    2.4,   // darter straight-line speed
+  MOTH_swarmVX:   1.65,  // swarm-corridor cruise speed
+};

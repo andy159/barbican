@@ -7,21 +7,57 @@ import { respawn } from './player.js';
 import { HIGHWALK } from '../levels/highwalk.js';
 import { ARTSCENTRE } from '../levels/artscentre.js';
 import { CONSERVATORY } from '../levels/conservatory.js';
+import { MOTHLIGHT } from '../levels/mothlight.js';
+import { bindWorld } from './mothlight.js';
 
 export const WORLD = [HIGHWALK, ARTSCENTRE, CONSERVATORY];
+const EXTRA = [MOTHLIGHT];                       // rooms outside the E-chain
+const ALL = [...WORLD, ...EXTRA];
 let idx = 0;
+bindWorld(goTo);                                 // the dream's wake-up call
+
+/* cross-room portals: touching the rect teleports to another room.
+   The Cinema 1 screen sucks the player into the Mothlight dream. */
+const PORTALS = {
+  'arts-centre': [{ rect: [305, 40, 314, 47], to: 'mothlight' }],
+};
 
 export function initWorld(startId = null){
   const want = startId ?? ((typeof location !== 'undefined')
     ? new URLSearchParams(location.search).get('level') : null);
-  const i = WORLD.findIndex(r => r.id === want);
-  idx = i >= 0 ? i : 0;
-  level.loadRoom(WORLD[idx]);
+  const i = ALL.findIndex(r => r.id === want);
+  idx = i >= 0 ? Math.min(i, WORLD.length - 1) : 0;
+  level.loadRoom(i >= 0 ? ALL[i] : WORLD[0]);
+  setTitle();
+}
+
+/* jump to a named room; `at` places the player at a tile (else its 'P') */
+export function goTo(id, P, at = null){
+  const room = ALL.find(r => r.id === id);
+  if(!room) return;
+  const w = WORLD.findIndex(r => r.id === id);
+  if(w >= 0) idx = w;
+  level.loadRoom(room);
+  Object.assign(P.abilities, room.abilities || {});
+  if(at){
+    P.checkpoint = { x: at[0]*level.TILE, y: (at[1]+2)*level.TILE - P.h };
+    respawn(P);
+  }else{
+    P.checkpoint = { x: level.spawn.x, y: level.spawn.y };
+    respawn(P);
+  }
   setTitle();
 }
 
 /* call once per fixed step, after step(P) */
 export function checkExit(P){
+  /* portals first (the cinema screen, etc.) */
+  for(const p of (PORTALS[level.currentRoom().id] || [])){
+    const [x0,y0,x1,y1] = p.rect;
+    const tx = (P.x + P.w/2)/level.TILE, ty = (P.y + P.h/2)/level.TILE;
+    if(tx >= x0 && tx <= x1+1 && ty >= y0 && ty <= y1+1){ goTo(p.to, P); return; }
+  }
+  if(level.currentRoom().id === 'mothlight') return;   // the dream exits via its tear
   if(!level.overlapsChar(P.x, P.y, P.w, P.h, 'E')) return;
   idx = (idx + 1) % WORLD.length;
   level.loadRoom(WORLD[idx]);
@@ -35,5 +71,5 @@ function setTitle(){
   if(typeof document === 'undefined') return;
   const el = document.getElementById('title');
   if(el) el.innerHTML =
-    `THE <span>BARBICAN</span> · ${WORLD[idx].id.replace(/-/g, ' ').toUpperCase()}`;
+    `THE <span>BARBICAN</span> · ${level.currentRoom().id.replace(/-/g, ' ').toUpperCase()}`;
 }
