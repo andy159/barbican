@@ -14,9 +14,9 @@ export const HIGHWALK = {
   tiles: [
 "",
 "",
-"                                                                                                                                                                                                                      TT",
-"                                                                                                                                                                                                                     <TT",
-"                                                                                                                                                                                                                      TT                          TT",
+"                                                                                                                                                                                                                      TT                      K",
+"                                                                                                                                                                                                                     <TT                      K",
+"                                                                                                                                                                                                                      TT                      K   TT",
 "                                                                                                                                                                                                                      TT        B             K   TT",
 "                                                                                                                                                                                                                     <TT    ========================",
 "                                                                                                                                                                                                                      TT                        TTTT",

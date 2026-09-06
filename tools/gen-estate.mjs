@@ -81,7 +81,9 @@ set(220,243,6,6,'=');                       // the roof
 set(242,243,4,5,'T');                       // crown stub at the east edge
 set(230,230,23,23,'B');                     // bench: LEVEL 15
 set(224,224,5,5,'B');                       // bench: roof
-set(238,238,5,5,'K');                       // the flat key
+set(238,238,2,5,'K');                       // the flat key — a full-height
+                                            // trigger column: no jump arc
+                                            // can clear the roof past it
 
 /* ---- S6: terrace roof + descent (cols 252-322) ---- */
 set(248,274,20,20,'=');  set(248,274,21,55,'T');   // terrace-block roof on its mass

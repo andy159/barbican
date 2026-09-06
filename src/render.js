@@ -283,6 +283,7 @@ function drawScene(P, alpha, cx, cy, interiorRoom, consMode, debugOn, fps){
         ctx.fillStyle = '#26332b'; ctx.fillRect(sx, sy, 1, TILE);
         ctx.fillRect(sx+TILE-1, sy, 1, TILE);
       }else if(t === 'K'){
+        if(tileAt(tx, ty+1) === 'K') continue;   // draw only the column's base
         /* THE KEY: big, golden, impossible to miss */
         const bob = Math.round(Math.sin(frame*0.06)*3);
         const kx = sx - 4, ky = sy - 6 + bob;

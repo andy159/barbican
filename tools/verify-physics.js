@@ -1317,5 +1317,17 @@ function swarmRun(maxF = 1600){
   console.log(`key grab zone      : ${P.keys.flat ? 'caught even while hopping' : 'MISSABLE (BAD)'}`);
   check(P.keys.flat, 'a hopping player must still collect the roof key');
 }
+{
+  /* worst case: a full jump timed to apex exactly over the key column */
+  const P = placeOnRoute(232*TILE, 6);
+  for(let f = 0; f < 400 && P.x < 244*TILE && !P.keys.flat; f++){
+    const ctrl = { right: true };
+    if(P.grounded && P.x + W >= 236*TILE - 4) ctrl.jump = true;   // launch to apex over col 238
+    if(!P.grounded) ctrl.jump = true;
+    step(P, ctrl);
+  }
+  console.log(`key apex jump      : ${P.keys.flat ? 'caught at full jump height' : 'CLEARED OVER IT (BAD)'}`);
+  check(P.keys.flat, 'even a full jump over the key must collect it');
+}
 
 process.exit(exitCode);

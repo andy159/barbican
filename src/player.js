@@ -265,7 +265,7 @@ function pitCheck(P){
 
   /* the flat key: generous grab zone, a small ceremony on pickup */
   if(!P.keys.flat && level.overlapsChar(P.x-6, P.y-6, P.w+12, P.h+12, 'K')){
-    for(let ty = by-2; ty <= by+2; ty++)
+    for(let ty = by-8; ty <= by+8; ty++)
       for(let tx = bx-2; tx <= bx+2; tx++)
         if(level.tileAt(tx, ty) === 'K') level.clearTile(tx, ty);
     P.keys.flat = true;
