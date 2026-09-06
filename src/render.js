@@ -62,12 +62,17 @@ export function stepAmbience(){
    little stairwell lights. */
 function drawInterior(cx, cy, alpha){
   /* paint only within the room's interior volumes — the estate stays
-     visible through doors and beyond the tower's walls */
+     visible through doors and beyond the tower's walls. From outside
+     the volumes read as unlit darkness; the detail fades up inside. */
+  const rects = level.currentRoom().interiors || [];
+  if(!rects.length) return;
   ctx.save();
   ctx.beginPath();
-  for(const [rx0,ry0,rx1,ry1] of (level.currentRoom().interiors || []))
+  for(const [rx0,ry0,rx1,ry1] of rects)
     ctx.rect(rx0*TILE - cx, ry0*TILE - cy, (rx1-rx0+1)*TILE, (ry1-ry0+1)*TILE);
   ctx.clip();
+  ctx.fillStyle = '#171310'; ctx.fillRect(0,0,VIEW_W,VIEW_H);   // unlit from outside
+  if(alpha < 0.01){ ctx.restore(); return; }
   ctx.globalAlpha = alpha;
   ctx.fillStyle = '#221e1a'; ctx.fillRect(0,0,VIEW_W,VIEW_H);
   const y0 = Math.floor(cy/TILE), y1 = Math.floor((cy+VIEW_H)/TILE);
@@ -125,10 +130,11 @@ export function render(P, alpha, debugOn, fps){
   ctx.fillStyle = 'rgba(213,219,222,0.42)';
   ctx.fillRect(0,0,VIEW_W,VIEW_H);
 
-  /* inside the tower, the estate disappears — ease into the interior */
+  /* inside the tower, the estate disappears — ease into the interior;
+     from outside, the interior volumes stay dark (you can't see in) */
   const wantInside = level.interiorAt(P.x + P.w/2, P.y + P.h/2) ? 1 : 0;
   insideT += (wantInside - insideT)*0.15;
-  if(insideT > 0.01) drawInterior(cx, cy, insideT);
+  drawInterior(cx, cy, insideT);
 
   /* drifting petals (not indoors) */
   if(insideT < 0.99){
@@ -146,10 +152,14 @@ export function render(P, alpha, debugOn, fps){
   for(let ty = y0; ty <= y1; ty++){
     for(let tx = x0; tx <= x1; tx++){
       const t = tileAt(tx,ty);
-      if(t === ' ' || t === '' || t === 'P') continue;
+      const inRect = level.interiorAt(tx*TILE+4, ty*TILE+4);
+      const empty = t === ' ' || t === '' || t === 'P';
+      if(empty && !inRect) continue;
       const sx = tx*TILE - cx, sy = ty*TILE - cy;
       const topExposed = !solidAt(tx,ty-1);
-      if(t === 'W'){
+      if(empty){
+        /* nothing to draw — the facade overlay below closes the skin */
+      }else if(t === 'W'){
         /* lake water: deep teal, lit surface line, faint ripple bands */
         ctx.fillStyle = '#3f6d66'; ctx.fillRect(sx,sy,TILE,TILE);
         if(tileAt(tx,ty-1) !== 'W'){
@@ -176,32 +186,7 @@ export function render(P, alpha, debugOn, fps){
       }else if(t === 'T'){
         /* tower facade: 3-row rhythm of balcony slab / glazing / spandrel,
            aligned by world row so bands run continuously up the face */
-        const band = ((ty % 3) + 3) % 3;
-        if(band === 0){
-          /* balcony: slab lip, serrated underside, railing, flower boxes */
-          ctx.fillStyle = PAL.towerMid;   ctx.fillRect(sx,sy,TILE,TILE);
-          ctx.fillStyle = PAL.slabLight;  ctx.fillRect(sx,sy,TILE,2);
-          ctx.fillStyle = PAL.towerShade;
-          for(let n = tx%2; n < TILE; n += 2) ctx.fillRect(sx+n, sy+2, 1, 1);
-          ctx.fillStyle = '#37588a';      ctx.fillRect(sx,sy+4,TILE,1);   // railing
-          const h = (tx*31 + ty*17) % 7;
-          if(h < 3){
-            ctx.fillStyle = FLOWERS[(tx+ty)%FLOWERS.length];
-            ctx.fillRect(sx + 1 + h*2, sy+3, 2, 2);
-          }else if(h === 4){
-            ctx.fillStyle = PAL.green;    ctx.fillRect(sx+3, sy+3, 3, 2);
-          }
-        }else if(band === 1){
-          /* glazing band, deep set, with mullions */
-          ctx.fillStyle = '#333d42';      ctx.fillRect(sx,sy,TILE,TILE);
-          ctx.fillStyle = '#4c5a60';      ctx.fillRect(sx + (tx%2 ? 2 : 5), sy, 1, TILE);
-          ctx.fillStyle = '#242c30';      ctx.fillRect(sx,sy,TILE,1);
-        }else{
-          /* spandrel: pick-hammered concrete */
-          ctx.fillStyle = PAL.towerMid;   ctx.fillRect(sx,sy,TILE,TILE);
-          ctx.fillStyle = PAL.towerShade; ctx.fillRect(sx,sy+5,TILE,1);
-          ctx.fillRect(sx + (tx*73 + ty*151) % 8, sy+2, 1, 1);
-        }
+        facadeBands(sx, sy, tx, ty);
         /* serrated prow edges where the face is exposed (photo ref: the
            tower corners read as stacked zigzag teeth) */
         if(!solidAt(tx-1,ty)){
@@ -287,16 +272,44 @@ export function render(P, alpha, debugOn, fps){
           ctx.fillRect(sx,sy,TILE,1);
         }
       }
+      /* from outside, the building's skin closes over its interior:
+         facade everywhere in the volume except the door openings */
+      if(inRect && insideT < 0.995){
+        if(doorAt(tx,ty)){
+          ctx.fillStyle = `rgba(23,19,16,${1-insideT})`;
+          ctx.fillRect(sx,sy,TILE,TILE);
+        }else{
+          ctx.globalAlpha = 1 - insideT;
+          facadeBands(sx, sy, tx, ty);
+          ctx.globalAlpha = 1;
+        }
+      }
     }
   }
 
-  /* room signage */
-  for(const s of (level.currentRoom().signs || []))
+  /* room signage (interior signs hide until you're inside) */
+  for(const s of (level.currentRoom().signs || [])){
+    const indoors = level.interiorAt(s.tx*TILE+4, s.ty*TILE+4);
+    ctx.globalAlpha = indoors ? insideT : 1;
     signAt(s.tx*TILE - cx, s.ty*TILE - cy, s.text);
+  }
+  ctx.globalAlpha = 1;
 
   /* walkway planters */
   for(const [lx,ly] of (level.currentRoom().planters || []))
     drawPlanter(lx,ly,cx,cy);
+
+  /* entrance lamps: warm yellow glow marking the way in */
+  for(const [lx,ly] of (level.currentRoom().lamps || [])){
+    const x = lx*TILE - cx, y = ly*TILE - cy;
+    if(x < -30 || x > VIEW_W+30) continue;
+    const pulse = 0.13 + Math.sin(frame*0.05)*0.03;
+    ctx.fillStyle = `rgba(247,198,35,${pulse})`;      ctx.fillRect(x-10, y-3, 36, 24);
+    ctx.fillStyle = `rgba(247,198,35,${pulse+0.07})`; ctx.fillRect(x-2,  y,  20, 14);
+    ctx.fillStyle = '#3a3530'; ctx.fillRect(x+5, y-2, 6, 2);       // fixture housing
+    ctx.fillStyle = '#f7c623'; ctx.fillRect(x+6, y,  4, 2);        // the lamp
+    ctx.fillStyle = '#fff3c4'; ctx.fillRect(x+7, y,  2, 1);
+  }
 
   /* dash afterimages, oldest faintest */
   for(const t of P.trail){
@@ -337,6 +350,43 @@ export function render(P, alpha, debugOn, fps){
     ];
     L.forEach((s,i) => ctx.fillText(s, 8, 13+i*9));
   }
+}
+
+/* One 8×8 cell of tower facade: balcony slab / glazing / spandrel by
+   world row, so bands run continuously across any painted region. */
+function facadeBands(sx, sy, tx, ty){
+  const band = ((ty % 3) + 3) % 3;
+  if(band === 0){
+    /* balcony: slab lip, serrated underside, railing, flower boxes */
+    ctx.fillStyle = PAL.towerMid;   ctx.fillRect(sx,sy,TILE,TILE);
+    ctx.fillStyle = PAL.slabLight;  ctx.fillRect(sx,sy,TILE,2);
+    ctx.fillStyle = PAL.towerShade;
+    for(let n = tx%2; n < TILE; n += 2) ctx.fillRect(sx+n, sy+2, 1, 1);
+    ctx.fillStyle = '#37588a';      ctx.fillRect(sx,sy+4,TILE,1);   // railing
+    const h = (tx*31 + ty*17) % 7;
+    if(h < 3){
+      ctx.fillStyle = FLOWERS[(tx+ty)%FLOWERS.length];
+      ctx.fillRect(sx + 1 + h*2, sy+3, 2, 2);
+    }else if(h === 4){
+      ctx.fillStyle = PAL.green;    ctx.fillRect(sx+3, sy+3, 3, 2);
+    }
+  }else if(band === 1){
+    /* glazing band, deep set, with mullions */
+    ctx.fillStyle = '#333d42';      ctx.fillRect(sx,sy,TILE,TILE);
+    ctx.fillStyle = '#4c5a60';      ctx.fillRect(sx + (tx%2 ? 2 : 5), sy, 1, TILE);
+    ctx.fillStyle = '#242c30';      ctx.fillRect(sx,sy,TILE,1);
+  }else{
+    /* spandrel: pick-hammered concrete */
+    ctx.fillStyle = PAL.towerMid;   ctx.fillRect(sx,sy,TILE,TILE);
+    ctx.fillStyle = PAL.towerShade; ctx.fillRect(sx,sy+5,TILE,1);
+    ctx.fillRect(sx + (tx*73 + ty*151) % 8, sy+2, 1, 1);
+  }
+}
+
+function doorAt(tx, ty){
+  for(const [x0,y0,x1,y1] of (level.currentRoom().doors || []))
+    if(tx >= x0 && tx <= x1 && ty >= y0 && ty <= y1) return true;
+  return false;
 }
 
 /* One of the estate's three towers: slim warm-concrete shaft, serrated

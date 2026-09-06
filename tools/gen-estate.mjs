@@ -107,6 +107,7 @@ const signs = [
   [196,30,'CROMWELL TOWER →'],
   [217,30,'LOBBY'],
   [224,28,'STAIRS ↑'],
+  [225,18,'LEVEL 15 →'],
   [233,22,'LEVEL 15'],
   [241,15,'LEVEL 28'],
   [222,4,'LEVEL 43 · ROOF'],
@@ -131,6 +132,8 @@ ${rows.map(r => JSON.stringify(r) + ',').join('\n')}
   ],
   planters: ${JSON.stringify(planters)},
   interiors: [[214,7,243,31]],
+  lamps: [[214,29],[229,23],[221,15],[221,7]],
+  doors: [[214,30,215,31]],
   signs: [
 ${signs.map(([tx,ty,text]) => `    { tx: ${tx}, ty: ${ty}, text: ${JSON.stringify(text)} },`).join('\n')}
   ],

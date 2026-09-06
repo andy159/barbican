@@ -69,6 +69,8 @@ export const HIGHWALK = {
   ],
   planters: [[13,48],[31,48],[45,48],[74,48],[97,48],[136,52],[138,52],[162,32],[196,32],[207,32],[218,32],[231,23],[266,20],[331,48]],
   interiors: [[214,7,243,31]],
+  lamps: [[214,29],[229,23],[221,15],[221,7]],
+  doors: [[214,30,215,31]],
   signs: [
     { tx: 10, ty: 46, text: "FROBISHER WALK →" },
     { tx: 20, ty: 52, text: "WALL JUMP ↑" },
@@ -79,6 +81,7 @@ export const HIGHWALK = {
     { tx: 196, ty: 30, text: "CROMWELL TOWER →" },
     { tx: 217, ty: 30, text: "LOBBY" },
     { tx: 224, ty: 28, text: "STAIRS ↑" },
+    { tx: 225, ty: 18, text: "LEVEL 15 →" },
     { tx: 233, ty: 22, text: "LEVEL 15" },
     { tx: 241, ty: 15, text: "LEVEL 28" },
     { tx: 222, ty: 4, text: "LEVEL 43 · ROOF" },
