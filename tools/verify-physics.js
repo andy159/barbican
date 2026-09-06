@@ -159,7 +159,7 @@ function synthBarge(barge){
 }
 
 /* ================================================================
-   Estate-route proofs against the real level.
+   Estate-route proofs against the real level (v2: 360x56).
    ================================================================ */
 function placeOnRoute(x, surfaceRow, abilities = {}){
   level.loadRoom(HIGHWALK);
@@ -173,26 +173,17 @@ function placeOnRoute(x, surfaceRow, abilities = {}){
 /* structural sanity of the generated level */
 {
   level.loadRoom(HIGHWALK);
-  check(level.tileAt(7,35) === 'B' && level.tileAt(105,35) === 'B' &&
-        level.tileAt(176,19) === 'B' && level.tileAt(260,7) === 'B' &&
-        level.tileAt(322,35) === 'B', 'all five benches present');
-  check(level.tileAt(130,36) === '-' && level.tileAt(133,36) === '-', 'scuffed line at secret');
-  check(level.tileAt(70,41) === 'W' && level.tileAt(330,40) === 'W', 'water under bridge and stones');
-  check(level.tileAt(118,36) === '=' && level.tileAt(121,36) === '=', 'shaft floor');
-  check(!level.solidAt(122,34) && !level.solidAt(122,35), 'shaft door to the pocket');
+  const benches = [[7,47],[105,47],[190,31],[230,23],[272,19],[328,47]];
+  check(benches.every(([x,y]) => level.tileAt(x,y) === 'B'), 'all six benches present');
+  check(level.tileAt(130,48) === '-' && level.tileAt(133,48) === '-', 'scuffed line at secret');
+  check(level.tileAt(70,53) === 'W' && level.tileAt(330,52) === 'W', 'water under bridge and stones');
+  check(!level.solidAt(122,46) && !level.solidAt(122,47), 'service shaft east door');
+  check(!level.solidAt(214,30) && !level.solidAt(214,31), 'tower west door');
+  check(level.tileAt(213,27) === '<' && level.tileAt(213,3) === '<', 'balcony prows on the tower face');
 }
 
-/* --- shaft entry: walkable from the west at ground level --- */
-{
-  const P = placeOnRoute(110*TILE, 36);
-  for(let f = 0; f < 200 && P.x < 119*TILE; f++) step(P, { right: true });
-  const inShaft = P.grounded && P.x >= 119*TILE && Math.abs(feet(P) - 36*TILE) < 1.2;
-  console.log(`shaft entry        : ${inShaft ? 'walked in at ground level' : 'BLOCKED'}`);
-  check(inShaft, 'shaft must be enterable on foot from the west');
-}
-
-/* --- service shaft: 16-tile wall-jump climb (cols 118-121) --- */
-function climbShaft(P, exitY, maxFrames){
+/* generic wall-jump shaft climb policy (band offsets relative to exit) */
+function climbShaft(P, exitY, exitMinX, maxFrames){
   let jumpHeld = false, minFeet = feet(P);
   for(let f = 0; f < maxFrames; f++){
     const ft = feet(P);
@@ -201,134 +192,151 @@ function climbShaft(P, exitY, maxFrames){
     let wantJump = false;
     if(P.grounded) wantJump = true;
     else if(cleared) wantJump = false;
-    else if(t === 1)  wantJump = ft >= exitY + 39;                     // right wall: don't overshoot
-    else if(t === -1) wantJump = ft <= exitY + 26 || ft >= exitY + 54; // left wall: finish band, or low climb
+    else if(t === 1)  wantJump = ft >= exitY + 39;
+    else if(t === -1) wantJump = ft <= exitY + 26 || ft >= exitY + 54;
     const jump = wantJump ? !jumpHeld : jumpHeld;
     const dir = cleared ? 1 : (t !== 0 ? t : (P.grounded ? 1 : (P.vx < 0 ? -1 : 1)));
     step(P, { left: dir === -1, right: dir === 1, jump });
     jumpHeld = jump;
     minFeet = Math.min(minFeet, feet(P));
-    if(P.grounded && Math.abs(feet(P) - exitY) < 1.2 && P.x >= 122*TILE)
+    if(P.grounded && Math.abs(feet(P) - exitY) < 1.2 && P.x >= exitMinX)
       return { done: true, frames: f+1, minFeet };
     if(P.deaths > 0) break;
   }
   return { done: false, frames: maxFrames, minFeet };
 }
+
+/* --- service shaft: entry walk, 16-tile climb, gated --- */
 {
-  const P = placeOnRoute(119*TILE + 2, 36);
-  const r = climbShaft(P, 20*TILE, 1800);
-  console.log('shaft w/ wall jump : ' + (r.done
-    ? `CLIMBED 16 tiles in ${r.frames} frames (${(r.frames/60).toFixed(1)}s)`
-    : `FAILED — best ${((36*TILE - r.minFeet)/TILE).toFixed(2)} tiles`));
-  check(r.done, 'shaft must be climbable with wall jump');
+  const P = placeOnRoute(110*TILE, 48);
+  for(let f = 0; f < 200 && P.x < 119*TILE; f++) step(P, { right: true });
+  const ok = P.grounded && P.x >= 119*TILE && Math.abs(feet(P) - 48*TILE) < 1.2;
+  console.log(`shaft entry        : ${ok ? 'walked in at ground level' : 'BLOCKED'}`);
+  check(ok, 'shaft must be enterable on foot');
 }
 {
-  const P = placeOnRoute(119*TILE + 2, 36, { wallJump: false });
-  const r = climbShaft(P, 20*TILE, 900);
-  const gained = (36*TILE - r.minFeet)/TILE;
-  console.log('shaft w/o ability  : ' + (r.done
-    ? 'CLIMBED — route is NOT gated!'
-    : `blocked OK (best ${gained.toFixed(2)} of 16 tiles)`));
-  check(!r.done, 'shaft must need the wall jump');
+  const r = climbShaft(placeOnRoute(119*TILE + 2, 48), 32*TILE, 122*TILE, 1800);
+  console.log('shaft w/ wall jump : ' + (r.done ? `CLIMBED 16 tiles in ${r.frames}f` : 'FAILED'));
+  check(r.done, 'service shaft must be climbable');
+}
+{
+  const r = climbShaft(placeOnRoute(119*TILE + 2, 48, { wallJump: false }), 32*TILE, 122*TILE, 900);
+  console.log('shaft w/o ability  : ' + (r.done ? 'CLIMBED (BAD)' : 'blocked OK'));
+  check(!r.done, 'service shaft must need the wall jump');
 }
 
-/* --- trench 1 (cols 20-22, 5 deep): wall-jump escape --- */
+/* --- trench 1 escape --- */
 {
-  const P = placeOnRoute(21*TILE, 41);
+  const P = placeOnRoute(21*TILE, 53);
   let jumpHeld = false, out = false;
   for(let f = 0; f < 600 && !out; f++){
     const t = touching(P);
-    const wantJump = P.grounded || t !== 0;
-    const jump = wantJump ? !jumpHeld : jumpHeld;
+    const jump = (P.grounded || t !== 0) ? !jumpHeld : jumpHeld;
     step(P, { right: true, jump });
     jumpHeld = jump;
-    if(P.grounded && feet(P) <= 36*TILE + 1) out = true;
+    if(P.grounded && feet(P) <= 48*TILE + 1) out = true;
   }
   console.log(`trench escape      : ${out ? 'OUT via wall jumps' : 'STUCK'}`);
   check(out, 'intro trench must be escapable');
 }
 
-/* --- run-jump gap proofs along the route --- */
-function runJump(startX, surfaceRow, edgeX, landX, landRow, maxF = 300){
+/* --- run-jump gap proofs --- */
+function runJump(startX, surfaceRow, edgeX, landX, landRow, maxF = 300, hold = 99){
   const P = placeOnRoute(startX, surfaceRow);
+  let air = 0;
   for(let f = 0; f < maxF; f++){
     const ctrl = { right: true };
-    if(P.grounded ? P.x + W >= edgeX - 4 : true) ctrl.jump = true;
+    const nearEdge = P.grounded ? P.x + W >= edgeX - 4 : true;
+    if(nearEdge){ if(!P.grounded) air++; ctrl.jump = air <= hold; }   // short hop when hold is small
     step(P, ctrl);
     if(P.deaths > 0) return false;
     if(P.grounded && P.x >= landX && Math.abs(feet(P) - landRow*TILE) < 1.2) return true;
   }
   return false;
 }
-{
-  const ok = runJump(72*TILE, 36, 79*TILE, 84*TILE, 36);
-  console.log(`bridge gap (5)     : ${ok ? 'crossed' : 'FAILED'}`);
-  check(ok, 'bridge 5-tile gap must be jumpable');
+function walkOff(startX, surfaceRow, landX, landRow, maxF = 300){
+  const P = placeOnRoute(startX, surfaceRow);
+  for(let f = 0; f < maxF; f++){
+    step(P, { right: true });
+    if(P.deaths > 0) return false;
+    if(P.grounded && P.x >= landX && Math.abs(feet(P) - landRow*TILE) < 1.2) return true;
+  }
+  return false;
 }
-{
-  const ok = runJump(148*TILE, 20, 154*TILE, 159*TILE, 20);
-  console.log(`highwalk gap (5)   : ${ok ? 'crossed' : 'FAILED'}`);
-  check(ok, 'highwalk 5-tile gap must be jumpable');
-}
-{
-  const ok = runJump(159*TILE, 20, 166*TILE, 172*TILE, 20);
-  console.log(`highwalk gap (6)   : ${ok ? 'crossed' : 'FAILED'}`);
-  check(ok, 'highwalk 6-tile gap must be jumpable');
-}
-{
-  /* tower entry: through both doorways at deck level */
-  const P = placeOnRoute(206*TILE, 20);
-  for(let f = 0; f < 300 && P.x < 223*TILE; f++) step(P, { right: true });
-  const inTower = P.grounded && P.x >= 223*TILE && Math.abs(feet(P) - 20*TILE) < 1.2;
-  console.log(`tower entry        : ${inTower ? 'walked through both doors' : 'BLOCKED'}`);
-  check(inTower, 'tower must be enterable on foot from the highwalk');
-}
-{
-  /* tower interior shaft: 12-tile wall-jump climb (cols 222-225) */
-  const P = placeOnRoute(223*TILE, 20);
-  const r = climbShaft(P, 8*TILE, 1800);
-  console.log('tower shaft climb  : ' + (r.done
-    ? `CLIMBED 12 tiles in ${r.frames} frames`
-    : `FAILED — best ${((20*TILE - r.minFeet)/TILE).toFixed(2)} tiles`));
-  check(r.done, 'tower shaft must be climbable with wall jump');
+const gaps = [
+  ['bridge gap (5)',        () => runJump(60*TILE, 48, 67*TILE, 72*TILE, 48)],
+  ['bridge gap (6)->island',() => runJump(72*TILE, 48, 78*TILE, 84*TILE, 48)],
+  ['island -> bridge (5)',  () => runJump(84*TILE, 48, 86*TILE, 91*TILE, 48)],
+  ['highwalk gap (5)',      () => runJump(142*TILE, 32, 144*TILE, 149*TILE, 32)],
+  ['highwalk gap (6)',      () => runJump(149*TILE, 32, 154*TILE, 160*TILE, 32)],
+  ['deck -> cap (4)',       () => runJump(160*TILE, 32, 165*TILE, 169*TILE, 32)],
+  ['cap -> cap (4)',        () => runJump(169*TILE, 32, 171*TILE, 175*TILE, 32)],
+  ['cap -> deck (4)',       () => runJump(175*TILE, 32, 177*TILE, 181*TILE, 32)],
+  ['crown stub hop',        () => runJump(239*TILE, 14, 242*TILE, 244*TILE, 14)],
+  ['tower roof -> terrace', () => walkOff(245*TILE, 14, 252*TILE, 20)],
+  ['descent walk-off',      () => walkOff(271*TILE, 20, 278*TILE, 24)],
+  ['terrace -> stone (4)',  () => runJump(330*TILE, 48, 336*TILE, 340*TILE, 48, 300, 12)],
+  ['stone -> stone (4)',    () => runJump(340*TILE, 48, 342*TILE, 346*TILE, 48)],
+  ['stone -> way out (3)',  () => runJump(346*TILE, 48, 348*TILE, 351*TILE, 48)],
+];
+for(const [name, fn] of gaps){
+  const ok = fn();
+  console.log(`${name.padEnd(19)}: ${ok ? 'crossed' : 'FAILED'}`);
+  check(ok, `${name} must be passable`);
 }
 
-/* --- secret alcove: drop in, jump out via the step --- */
+/* --- Cromwell Tower: entry, two-stage climb --- */
 {
-  const P = placeOnRoute(131*TILE, 36);      // standing on the scuffed line
+  const P = placeOnRoute(206*TILE, 32);
+  for(let f = 0; f < 300 && P.x < 225*TILE; f++) step(P, { right: true });
+  const ok = P.grounded && P.x >= 225*TILE && Math.abs(feet(P) - 32*TILE) < 1.2;
+  console.log(`tower entry        : ${ok ? 'walked through the door' : 'BLOCKED'}`);
+  check(ok, 'tower lobby must be walkable');
+}
+{
+  const r = climbShaft(placeOnRoute(225*TILE, 32), 24*TILE, 228*TILE, 1200);
+  console.log('tower shaft A      : ' + (r.done ? `CLIMBED to mezzanine in ${r.frames}f` : 'FAILED'));
+  check(r.done, 'shaft A must reach the mezzanine');
+}
+{
+  const r = climbShaft(placeOnRoute(235*TILE, 24), 14*TILE, 238*TILE, 1200);
+  console.log('tower shaft B      : ' + (r.done ? `CLIMBED to the roof in ${r.frames}f` : 'FAILED'));
+  check(r.done, 'shaft B must reach the roof');
+}
+
+/* --- secret alcove: drop in, step up, jump out --- */
+{
+  const P = placeOnRoute(131*TILE, 48);
   let inAlcove = false;
   for(let f = 0; f < 300 && !inAlcove; f++){
-    step(P, { right: true });                // walk off the pocket edge
-    if(P.grounded && Math.abs(feet(P) - 40*TILE) < 1.2) inAlcove = true;
+    step(P, { right: true });
+    if(P.grounded && Math.abs(feet(P) - 52*TILE) < 1.2) inAlcove = true;
   }
-  /* onto the step (cols 138-139, top row 37), then jump out left */
   let onStep = false;
   for(let f = 0; f < 300 && !onStep; f++){
-    step(P, { right: true, jump: P.grounded || P.vy < 0 });   // full-height hops
-    if(P.grounded && Math.abs(feet(P) - 37*TILE) < 1.2) onStep = true;
+    step(P, { right: true, jump: P.grounded || P.vy < 0 });
+    if(P.grounded && Math.abs(feet(P) - 49*TILE) < 1.2) onStep = true;
   }
-  /* bleed the rightward momentum on the step, then one full jump left */
   for(let f = 0; f < 60 && !(P.grounded && P.vx <= 0); f++) step(P, { left: true });
   let out = false;
   for(let f = 0; f < 300 && !out; f++){
-    const jump = f < 22;
-    step(P, { left: true, jump });
-    if(f > 22 && P.grounded && Math.abs(feet(P) - 36*TILE) < 1.2 && P.x < 134*TILE) out = true;
+    step(P, { left: true, jump: f < 22 });
+    if(f > 22 && P.grounded && Math.abs(feet(P) - 48*TILE) < 1.2 && P.x < 134*TILE) out = true;
   }
   console.log(`secret alcove      : ${inAlcove ? 'entered' : 'MISSED'}, ${onStep ? 'stepped up' : 'NO STEP'}, ${out ? 'escaped' : 'STUCK'}`);
-  check(inAlcove && out, 'alcove must be enterable and escapable');
+  check(inAlcove && onStep && out, 'alcove must be enterable and escapable');
 }
 
 /* --- water kills; benches set the respawn point --- */
 {
-  const P = placeOnRoute(5*TILE, 36);
-  for(let f = 0; f < 40; f++) step(P, { right: true });        // stroll across the bench
+  const P = placeOnRoute(5*TILE, 48);
+  for(let f = 0; f < 40; f++) step(P, { right: true });
   const marked = Math.abs(P.checkpoint.x - 7*TILE) < 0.5;
-  P.x = 60*TILE; P.px = P.x;                                   // carry on from the bridge
-  for(let f = 0; f < 300 && P.deaths === 0; f++) step(P, { right: true });   // walk into the first bridge gap
+  P.x = 60*TILE; P.px = P.x;
+  for(let f = 0; f < 300 && P.deaths === 0; f++) step(P, { right: true });
   const atBench = Math.abs(P.x - 7*TILE) < 2;
   console.log(`water + checkpoint : bench ${marked ? 'marked' : 'NOT MARKED'}, ` +
-    `${P.deaths > 0 ? 'drowned' : 'NO DEATH'}, respawned ${atBench ? 'at bench' : `at x=${P.x.toFixed(0)} (BAD)`}`);
+    `${P.deaths > 0 ? 'drowned' : 'NO DEATH'}, respawned ${atBench ? 'at bench' : 'ELSEWHERE (BAD)'}`);
   check(marked && P.deaths > 0 && atBench, 'water must kill and respawn at the last bench');
 }
 

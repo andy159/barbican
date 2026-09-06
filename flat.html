@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE BARBICAN · FLAT</title>
+<style>
+  :root{
+    --night:#0a0d1c; --line-yellow:#ffd95e; --warm:#e8ecf5;
+  }
+  html,body{margin:0;height:100%;background:var(--night);color:var(--warm);
+    font-family:"Courier New",monospace;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:10px;}
+  #frame{position:relative;line-height:0;border:1px solid #243052;}
+  canvas{width:min(96vw,960px);aspect-ratio:320/180;
+    image-rendering:pixelated;image-rendering:crisp-edges;background:#cdd9e2;
+    cursor:crosshair;}
+  #hud{font-size:12px;letter-spacing:.08em;color:#7e8aa8;text-transform:uppercase;}
+  #hud b{color:var(--line-yellow);font-weight:normal;}
+  #title{font-size:13px;letter-spacing:.35em;color:var(--warm);}
+  #title span{color:var(--line-yellow);}
+</style>
+</head>
+<body>
+<div id="title">THE <span>BARBICAN</span> · FLAT INTERIOR</div>
+<div id="frame"><canvas id="c" width="320" height="180"></canvas></div>
+<div id="hud"><b>CLICK</b> to look · <b>WASD</b> move · <b>ESC</b> release</div>
+<script type="module" src="flat/main.js"></script>
+</body>
+</html>

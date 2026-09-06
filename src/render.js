@@ -142,9 +142,35 @@ export function render(P, alpha, debugOn, fps){
           ctx.fillStyle = PAL.towerShade; ctx.fillRect(sx,sy+5,TILE,1);
           ctx.fillRect(sx + (tx*73 + ty*151) % 8, sy+2, 1, 1);
         }
-        /* sun-lit west edge, shaded east edge where the face is exposed */
-        if(!solidAt(tx-1,ty)){ ctx.fillStyle = PAL.towerSun;   ctx.fillRect(sx,sy,1,TILE); }
-        if(!solidAt(tx+1,ty)){ ctx.fillStyle = PAL.towerShade; ctx.fillRect(sx+TILE-1,sy,1,TILE); }
+        /* serrated prow edges where the face is exposed (photo ref: the
+           tower corners read as stacked zigzag teeth) */
+        if(!solidAt(tx-1,ty)){
+          for(let n = 0; n < TILE; n++){
+            ctx.fillStyle = (n + ty) % 2 ? PAL.towerSun : PAL.towerShade;
+            ctx.fillRect(sx, sy+n, 1, 1);
+          }
+        }
+        if(!solidAt(tx+1,ty)){
+          for(let n = 0; n < TILE; n++){
+            ctx.fillStyle = (n + ty) % 2 ? PAL.towerShade : '#5a5348';
+            ctx.fillRect(sx+TILE-1, sy+n, 1, 1);
+          }
+        }
+      }else if(t === '<' || t === '>'){
+        /* balcony prow: pointed wedge jutting off the tower face, thin
+           railing on top, deep shadow underneath (Cromwell balcony ref) */
+        const flip = t === '>';
+        const px = (x,w,y,h,c) => {              // x measured from the point
+          ctx.fillStyle = c;
+          ctx.fillRect(flip ? sx + TILE - x - w : sx + x, sy+y, w, h);
+        };
+        px(0,8,1,2, PAL.slabLight);              // slab top catching the sun
+        px(2,6,3,2, PAL.towerMid);               // wedge body
+        px(4,4,5,2, PAL.towerShade);             // underside step
+        px(6,2,7,1, '#4c463d');                  // the point's dark tip
+        px(1,1,0,1, '#2c3a52'); px(4,1,0,1, '#2c3a52'); px(7,1,0,1, '#2c3a52'); // rail posts
+        ctx.fillStyle = '#37588a';
+        ctx.fillRect(sx, sy-1, TILE, 1);         // railing line
       }else if(t === 'H'){
         /* plywood hoarding: warm boards, plank joints, a pasted notice */
         ctx.fillStyle = '#c09055';  ctx.fillRect(sx,sy,TILE,TILE);
