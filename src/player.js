@@ -22,6 +22,7 @@ export function makePlayer(){
     sx: 1, sy: 1,                                // squash/stretch scales
     deaths: 0, flash: 0,
     checkpoint: { x: level.spawn.x, y: level.spawn.y },   // last bench rested at
+    keys: { flat: false },
     abilities: { wallJump: true, dash: false, barge: false, grapple: false },
   };
 }
@@ -248,6 +249,13 @@ function pitCheck(P){
   const bx = Math.floor((P.x + P.w/2)/TILE), by = Math.floor((P.y + P.h/2)/TILE);
   if(level.tileAt(bx, by) === 'B')
     P.checkpoint = { x: bx*TILE, y: (by+1)*TILE - P.h };
+
+  /* the flat key: a small ceremony on pickup */
+  if(level.tileAt(bx, by) === 'K'){
+    P.keys.flat = true;
+    level.clearTile(bx, by);
+    P.flash = 16; P.freeze = 8;
+  }
 
   const drowned = level.overlapsChar(P.x, P.y, P.w, P.h, 'W');
   if(drowned || P.y > level.ROOM_H*TILE + 24){ P.deaths++; respawn(P); }

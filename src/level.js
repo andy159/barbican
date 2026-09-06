@@ -21,6 +21,17 @@ export function loadRoom(r){
 
 export function currentRoom(){ return room; }
 
+/* is this pixel position inside one of the room's interior volumes? */
+export function interiorAt(x, y){
+  const tx = x/TILE, ty = y/TILE;
+  for(const [x0,y0,x1,y1] of (room.interiors || []))
+    if(tx >= x0 && tx <= x1+1 && ty >= y0 && ty <= y1+1) return true;
+  return false;
+}
+
+/* remove one tile (pickups being collected) */
+export function clearTile(tx, ty){ breakTile(tx, ty); }
+
 export function tileAt(tx, ty){
   if(tx < 0 || tx >= ROOM_W) return '#';         // solid walls at room edges
   if(ty < 0) return ' ';

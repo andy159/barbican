@@ -45,12 +45,48 @@ const motes = Array.from({length: 18}, () => ({
   x: rand(VIEW_W), y: rand(VIEW_H), s: 0.15 + rand(0.2),
   c: PETAL_COLORS[Math.floor(rand(4))], ph: rand(6.28),
 }));
+let frame = 0;                              // ambience clock (bobbing pickups)
+let insideT = 0;                            // 0 outdoors → 1 fully interior
 export function stepAmbience(){
+  frame++;
   for(const m of motes){
     m.y += m.s;
     m.x += Math.sin(m.y*0.08 + m.ph)*0.18;
     if(m.y > VIEW_H+2){ m.y = -2; m.x = rand(VIEW_W); }
   }
+}
+
+/* Interior backdrop: the tower's concrete service core. World-anchored
+   so it scrolls with the room — board-marked panels, lift-guide rails,
+   painted floor numbers (03 at the lobby to 43 at the roof), and warm
+   little stairwell lights. */
+function drawInterior(cx, cy, alpha){
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = '#221e1a'; ctx.fillRect(0,0,VIEW_W,VIEW_H);
+  const y0 = Math.floor(cy/TILE), y1 = Math.floor((cy+VIEW_H)/TILE);
+  const x0 = Math.floor(cx/TILE), x1 = Math.floor((cx+VIEW_W)/TILE);
+  for(let tx = x0; tx <= x1; tx++){
+    if(tx % 6 !== 0) continue;
+    ctx.fillStyle = '#1b1815'; ctx.fillRect(tx*TILE - cx, 0, 1, VIEW_H); // panel joints
+  }
+  for(let ty = y0; ty <= y1; ty++){
+    const sy = ty*TILE - cy;
+    ctx.fillStyle = '#1d1a17'; ctx.fillRect(0, sy+7, VIEW_W, 1);        // shutter lines
+    if(ty % 3 === 0){
+      ctx.fillStyle = '#2c2824'; ctx.fillRect(0, sy, VIEW_W, 2);
+      const lvl = Math.max(3, Math.min(43, Math.round(3 + (32 - ty)*40/26)));
+      for(let tx = x0 - (x0 % 15); tx <= x1; tx += 15){
+        const sx = tx*TILE - cx;
+        if(tx % 30 === 0){
+          ctx.fillStyle = '#7a6230'; ctx.font = '7px monospace';        // painted stencil
+          ctx.fillText(String(lvl).padStart(2,'0'), sx+2, sy+14);
+        }
+        ctx.fillStyle = 'rgba(232,198,122,0.10)'; ctx.fillRect(sx+42, sy+1, 12, 9);
+        ctx.fillStyle = '#e8c67a'; ctx.fillRect(sx+47, sy+4, 2, 2);     // stairwell light
+      }
+    }
+  }
+  ctx.globalAlpha = 1;
 }
 
 /* ---------------- render ---------------- */
@@ -81,10 +117,19 @@ export function render(P, alpha, debugOn, fps){
   ctx.fillStyle = 'rgba(213,219,222,0.42)';
   ctx.fillRect(0,0,VIEW_W,VIEW_H);
 
-  /* drifting petals */
-  for(const m of motes){
-    ctx.fillStyle = m.c;
-    ctx.fillRect((m.x - cx*0.3 + 960)%VIEW_W, m.y, 2, 1);
+  /* inside the tower, the estate disappears — ease into the interior */
+  const wantInside = level.interiorAt(P.x + P.w/2, P.y + P.h/2) ? 1 : 0;
+  insideT += (wantInside - insideT)*0.15;
+  if(insideT > 0.01) drawInterior(cx, cy, insideT);
+
+  /* drifting petals (not indoors) */
+  if(insideT < 0.99){
+    ctx.globalAlpha = 1 - insideT;
+    for(const m of motes){
+      ctx.fillStyle = m.c;
+      ctx.fillRect((m.x - cx*0.3 + 960)%VIEW_W, m.y, 2, 1);
+    }
+    ctx.globalAlpha = 1;
   }
 
   /* tiles — only the visible range */
@@ -113,6 +158,13 @@ export function render(P, alpha, debugOn, fps){
         if(P.checkpoint && Math.floor(P.checkpoint.x/TILE) === tx){
           ctx.fillStyle = '#f7c623'; ctx.fillRect(sx+3, sy+2, 2, 1);   // resting mark
         }
+      }else if(t === 'T' && insideT > 0.5){
+        /* seen from inside, the tower's walls are bare shuttered concrete */
+        ctx.fillStyle = '#4a443c';  ctx.fillRect(sx,sy,TILE,TILE);
+        ctx.fillStyle = '#3e3831';  ctx.fillRect(sx,sy+3,TILE,1);
+        ctx.fillRect(sx,sy+6,TILE,1);
+        ctx.fillStyle = '#554e44';  ctx.fillRect(sx,sy,TILE,1);
+        ctx.fillRect(sx + (tx*73 + ty*151) % 8, sy+4, 1, 1);
       }else if(t === 'T'){
         /* tower facade: 3-row rhythm of balcony slab / glazing / spandrel,
            aligned by world row so bands run continuously up the face */
@@ -171,6 +223,16 @@ export function render(P, alpha, debugOn, fps){
         px(1,1,0,1, '#2c3a52'); px(4,1,0,1, '#2c3a52'); px(7,1,0,1, '#2c3a52'); // rail posts
         ctx.fillStyle = '#37588a';
         ctx.fillRect(sx, sy-1, TILE, 1);         // railing line
+      }else if(t === 'K'){
+        /* the flat key: gold, bobbing, glinting */
+        const bob = Math.round(Math.sin(frame*0.08)*2);
+        ctx.fillStyle = '#e8b92e';
+        ctx.fillRect(sx+1, sy+3+bob, 4, 2);                    // shaft
+        ctx.fillRect(sx+4, sy+2+bob, 3, 4);                    // bow
+        ctx.fillRect(sx+1, sy+5+bob, 1, 1);                    // tooth
+        ctx.fillStyle = '#fff3c4';
+        ctx.fillRect(sx+5, sy+3+bob, 1, 1);
+        if(frame % 90 < 6){ ctx.fillStyle = '#ffffff'; ctx.fillRect(sx+6, sy+bob, 1, 1); }
       }else if(t === 'H'){
         /* plywood hoarding: warm boards, plank joints, a pasted notice */
         ctx.fillStyle = '#c09055';  ctx.fillRect(sx,sy,TILE,TILE);
@@ -241,10 +303,12 @@ export function render(P, alpha, debugOn, fps){
   const iy = P.py + (P.y-P.py)*alpha - cy;
   drawPlayer(P, ix, iy);
 
-  /* bright atmospheric haze at the base + the gentlest vignette */
+  /* bright atmospheric haze at the base (fades away indoors) */
+  ctx.globalAlpha = 1 - insideT;
   const haze = ctx.createLinearGradient(0,VIEW_H-32,0,VIEW_H);
   haze.addColorStop(0,'rgba(226,222,208,0)'); haze.addColorStop(1,'rgba(226,222,208,0.28)');
   ctx.fillStyle = haze; ctx.fillRect(0,VIEW_H-32,VIEW_W,32);
+  ctx.globalAlpha = 1;
   const vig = ctx.createRadialGradient(VIEW_W/2,VIEW_H/2,90,VIEW_W/2,VIEW_H/2,210);
   vig.addColorStop(0,'rgba(30,40,60,0)'); vig.addColorStop(1,'rgba(30,40,60,0.14)');
   ctx.fillStyle = vig; ctx.fillRect(0,0,VIEW_W,VIEW_H);

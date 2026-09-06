@@ -173,8 +173,9 @@ function placeOnRoute(x, surfaceRow, abilities = {}){
 /* structural sanity of the generated level */
 {
   level.loadRoom(HIGHWALK);
-  const benches = [[7,47],[105,47],[190,31],[230,23],[272,19],[328,47]];
-  check(benches.every(([x,y]) => level.tileAt(x,y) === 'B'), 'all six benches present');
+  const benches = [[7,47],[105,47],[190,31],[230,23],[224,5],[272,19],[328,47]];
+  check(benches.every(([x,y]) => level.tileAt(x,y) === 'B'), 'all seven benches present');
+  check(level.tileAt(238,5) === 'K', 'the flat key waits on the roof');
   check(level.tileAt(130,48) === '-' && level.tileAt(133,48) === '-', 'scuffed line at secret');
   check(level.tileAt(70,53) === 'W' && level.tileAt(330,52) === 'W', 'water under bridge and stones');
   check(!level.solidAt(122,46) && !level.solidAt(122,47), 'service shaft east door');
@@ -272,8 +273,7 @@ const gaps = [
   ['deck -> cap (4)',       () => runJump(160*TILE, 32, 165*TILE, 169*TILE, 32)],
   ['cap -> cap (4)',        () => runJump(169*TILE, 32, 171*TILE, 175*TILE, 32)],
   ['cap -> deck (4)',       () => runJump(175*TILE, 32, 177*TILE, 181*TILE, 32)],
-  ['crown stub hop',        () => runJump(239*TILE, 14, 242*TILE, 244*TILE, 14)],
-  ['tower roof -> terrace', () => walkOff(245*TILE, 14, 252*TILE, 20)],
+  ['stub hop -> terrace',   () => runJump(238*TILE, 6, 242*TILE, 249*TILE, 20, 400)],
   ['descent walk-off',      () => walkOff(271*TILE, 20, 278*TILE, 24)],
   ['terrace -> stone (4)',  () => runJump(330*TILE, 48, 336*TILE, 340*TILE, 48, 300, 12)],
   ['stone -> stone (4)',    () => runJump(340*TILE, 48, 342*TILE, 346*TILE, 48)],
@@ -295,13 +295,40 @@ for(const [name, fn] of gaps){
 }
 {
   const r = climbShaft(placeOnRoute(225*TILE, 32), 24*TILE, 228*TILE, 1200);
-  console.log('tower shaft A      : ' + (r.done ? `CLIMBED to mezzanine in ${r.frames}f` : 'FAILED'));
-  check(r.done, 'shaft A must reach the mezzanine');
+  console.log('tower shaft A      : ' + (r.done ? `CLIMBED to LEVEL 15 in ${r.frames}f` : 'FAILED'));
+  check(r.done, 'shaft A must reach the LEVEL 15 mezzanine');
 }
 {
-  const r = climbShaft(placeOnRoute(235*TILE, 24), 14*TILE, 238*TILE, 1200);
-  console.log('tower shaft B      : ' + (r.done ? `CLIMBED to the roof in ${r.frames}f` : 'FAILED'));
-  check(r.done, 'shaft B must reach the roof');
+  const r = climbShaft(placeOnRoute(235*TILE, 24), 16*TILE, 238*TILE, 1200);
+  console.log('tower shaft B      : ' + (r.done ? `CLIMBED to LEVEL 28 in ${r.frames}f` : 'FAILED'));
+  check(r.done, 'shaft B must reach the LEVEL 28 slab');
+}
+{
+  /* LEVEL 28: jump back west over the shaft-B mouth (cols 234-237) */
+  const P = placeOnRoute(241*TILE, 16);
+  let ok = false;
+  for(let f = 0; f < 400 && !ok; f++){
+    const ctrl = { left: true };
+    if(P.grounded ? P.x <= 238*TILE + 6 : true) ctrl.jump = true;
+    step(P, ctrl);
+    if(P.deaths > 0) break;
+    if(P.grounded && P.x <= 230*TILE && Math.abs(feet(P) - 16*TILE) < 1.2) ok = true;
+  }
+  console.log(`mouth cross (west) : ${ok ? 'crossed' : 'FAILED'}`);
+  check(ok, 'the shaft-B mouth must be jumpable heading west');
+}
+{
+  const r = climbShaft(placeOnRoute(217*TILE, 16), 6*TILE, 220*TILE, 1200);
+  console.log('tower shaft C      : ' + (r.done ? `CLIMBED to the roof in ${r.frames}f` : 'FAILED'));
+  check(r.done, 'shaft C must reach the roof');
+}
+{
+  /* the roof: walk from the exit to the key; picking it up sets the flag */
+  const P = placeOnRoute(222*TILE, 6);
+  for(let f = 0; f < 300 && !P.keys.flat; f++) step(P, { right: true });
+  console.log(`flat key           : ${P.keys.flat ? 'PICKED UP on the roof' : 'NOT REACHED'}`);
+  check(P.keys.flat, 'the flat key must be collectable on the roof');
+  check(level.tileAt(238,5) === ' ', 'the key disappears once taken');
 }
 
 /* --- secret alcove: drop in, step up, jump out --- */

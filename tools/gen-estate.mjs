@@ -54,26 +54,30 @@ set(169,170,33,55,'#'); set(175,176,33,55,'#');           // their pillars
 set(150,151,35,55,'#'); set(190,191,35,55,'#'); set(200,201,35,55,'#');  // undercroft pillars
 set(190,190,31,31,'B');                     // bench: mid highwalk
 
-/* ---- S5: Cromwell Tower (cols 213-243), deck row 32, roof row 14 ---- */
+/* ---- S5: Cromwell Tower (cols 213-243) — interior climb in three
+   stages: lobby (32) -> shaft A -> LEVEL 15 mezzanine (24) -> shaft B
+   -> LEVEL 28 slab (16) -> shaft C -> roof, LEVEL 43 (6). ---- */
 set(214,215,2,29,'T');                      // west face, full height (door rows 30-31)
 for(let r = 3; r <= 27; r += 3) set(213,213,r,r,'<');     // balcony prows on the face
 set(214,243,33,55,'T');                     // tower mass below deck
-set(216,235,32,32,'=');                     // walkable lobby floor
+set(216,235,32,32,'=');                     // lobby floor
 set(214,215,32,32,'T', true); set(236,243,32,32,'T', true); // wall feet
-set(216,221,2,27,'T');                      // upper body over the lobby
-set(222,223,2,29,'T');                      // inner wall (door rows 30-31)
-set(224,231,2,16,'T');                      // upper body over shaft A + mezzanine
-set(228,229,25,31,'T');                     // shaft A east wall (floor to mezzanine)
-set(228,233,24,24,'#');                     // mezzanine slab (shaft A exits through 224-227)
-set(232,233,8,23,'T');                      // shaft B west wall on the mezzanine
-set(238,239,15,31,'T');                     // shaft B east wall, under the roof
-set(238,247,14,14,'=');                     // tower roof
-set(240,243,15,31,'T');                     // upper mass under the roof, east side
-set(242,243,12,13,'T');                     // crown pinnacle stub (hop over)
-set(230,230,23,23,'B');                     // bench: mezzanine
+set(222,223,17,29,'T');                     // shaft A west wall (door rows 30-31)
+set(228,229,25,31,'T');                     // shaft A east wall
+set(228,233,24,24,'#');                     // LEVEL 15 mezzanine slab
+set(232,233,17,23,'T');                     // shaft B west wall
+set(238,239,17,31,'T');                     // shaft B east wall
+set(216,233,16,16,'#'); set(238,243,16,16,'#');   // LEVEL 28 slab (shaft B mouth 234-237)
+set(220,221,8,13,'T');                      // shaft C east wall (door rows 14-15)
+set(240,243,7,13,'T');                      // upper mass east (headroom over LEVEL 28)
+set(220,243,6,6,'=');                       // the roof
+set(242,243,4,5,'T');                       // crown stub at the east edge
+set(230,230,23,23,'B');                     // bench: LEVEL 15
+set(224,224,5,5,'B');                       // bench: roof
+set(238,238,5,5,'K');                       // the flat key
 
 /* ---- S6: terrace roof + descent + lakeside (cols 252-359) ---- */
-set(252,274,20,20,'=');  set(252,274,21,55,'T');   // terrace-block roof on its mass
+set(248,274,20,20,'=');  set(248,274,21,55,'T');   // terrace-block roof on its mass
 set(256,256,19,19,'#'); set(260,260,19,19,'#'); set(264,264,19,19,'#'); set(268,268,19,19,'#'); // vault crests
 set(272,272,19,19,'B');                     // bench: terrace roof
 for(const [a,b,r] of [[278,282,24],[286,290,28],[294,298,32],[302,306,36],[310,314,40],[318,322,44]]){
@@ -100,8 +104,10 @@ const signs = [
   [126,30,'SPEED HIGHWALK →'],
   [196,30,'CROMWELL TOWER →'],
   [217,30,'LOBBY'],
-  [233,22,'LEVEL 21'],
-  [240,13,'BARBICAN ROOFS →'],
+  [233,22,'LEVEL 15'],
+  [241,15,'LEVEL 28'],
+  [222,4,'LEVEL 43 · ROOF'],
+  
   [327,45,'LAKESIDE TERRACE'],
   [353,46,'WAY OUT →'],
 ];
@@ -121,6 +127,7 @@ export const HIGHWALK = {
 ${rows.map(r => JSON.stringify(r) + ',').join('\n')}
   ],
   planters: ${JSON.stringify(planters)},
+  interiors: [[214,7,243,31]],
   signs: [
 ${signs.map(([tx,ty,text]) => `    { tx: ${tx}, ty: ${ty}, text: ${JSON.stringify(text)} },`).join('\n')}
   ],
