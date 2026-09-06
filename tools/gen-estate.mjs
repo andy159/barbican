@@ -168,7 +168,6 @@ const signs = [
   
   [327,44,'LAKESIDE TERRACE'],
   [334,42,'WALLSIDE'],
-  [343,44,'STAGE DOOR KEY INSIDE'],
   [341,45,'CENTRAL PONDS →'],
   [447,44,'WAY OUT →'],
 ];

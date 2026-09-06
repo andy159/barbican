@@ -503,37 +503,64 @@ const PFRAME = '#3a322c';
 // Helene Schjerfbeck — Self-Portrait with Black Background (1915).
 // The prominent, sun-lit north living wall above the G-Plan sideboard.
 // Black-umber ground, her name block-lettered (and half-erased) across the
-// top, pale tilted face, rose cheek, dark cap of hair, chalky collar, and the
-// red pot of brushes lower right.
+// top, pale tilted face with quiet modelling, dark cap of hair, chalky
+// collar with the shoulder-strap sliver, scraped-paint drag streaks, and the
+// red pot of brushes lower right. Layers step 5-7 mm off the wall (z 0.85+).
 boxes.push(B([-3.97, 1.18, 0.85, -3.38, 1.92, 0.875], PFRAME, false));
+boxes.push(B([-3.97, 1.895, 0.875, -3.38, 1.92, 0.877], '#6b5f52', false)); // lit top edge
+boxes.push(B([-3.95, 1.13, 0.8505, -3.40, 1.175, 0.8525], '#d4cfc4', false)); // wall shadow
 boxes.push(B([-3.95, 1.20, 0.875, -3.40, 1.90, 0.882], '#262019', false)); // ground
+boxes.push(B([-3.85, 1.42, 0.882, -3.53, 1.82, 0.8845], '#3a3029', false)); // umber halo
+boxes.push(B([-3.92, 1.28, 0.882, -3.87, 1.64, 0.8845], '#413830', false)); // scrape streak
+boxes.push(B([-3.58, 1.24, 0.882, -3.44, 1.285, 0.8845], '#453b32', false)); // scrape streak
 boxes.push(B([-3.90, 1.82, 0.882, -3.72, 1.85, 0.886], '#b3a794', false)); // HELENE…
-boxes.push(B([-3.68, 1.82, 0.882, -3.50, 1.845, 0.886], '#6e6354', false)); // …erased
+boxes.push(B([-3.68, 1.82, 0.882, -3.50, 1.845, 0.886], '#6e6354', false)); // …SCHJERF…
+boxes.push(B([-3.47, 1.82, 0.882, -3.42, 1.84, 0.886], '#8d8272', false)); // …erased
 boxes.push(B([-3.90, 1.22, 0.882, -3.45, 1.42, 0.887], '#372f26', false)); // shoulders
-boxes.push(B([-3.83, 1.32, 0.888, -3.52, 1.47, 0.892], '#cfc4b0', false)); // collar
-boxes.push(B([-3.80, 1.50, 0.882, -3.60, 1.76, 0.888], '#e0d2bd', false)); // face
-boxes.push(B([-3.77, 1.44, 0.888, -3.58, 1.54, 0.892], '#e0d2bd', false)); // tilted jaw
-boxes.push(B([-3.82, 1.68, 0.888, -3.58, 1.80, 0.893], '#1c1512', false)); // hair cap
-boxes.push(B([-3.655, 1.52, 0.893, -3.60, 1.575, 0.897], '#bc8b80', false)); // rose cheek
-boxes.push(B([-3.76, 1.63, 0.893, -3.72, 1.655, 0.897], '#2a211c', false)); // eyes
-boxes.push(B([-3.67, 1.63, 0.893, -3.63, 1.655, 0.897], '#2a211c', false));
-boxes.push(B([-3.72, 1.505, 0.893, -3.66, 1.525, 0.897], '#96554a', false)); // mouth
-boxes.push(B([-3.50, 1.24, 0.888, -3.43, 1.36, 0.893], '#a83226', false)); // red brush pot
-boxes.push(B([-3.485, 1.36, 0.888, -3.45, 1.44, 0.892], '#c9b48c', false)); // brushes
+boxes.push(B([-3.735, 1.40, 0.8845, -3.655, 1.52, 0.889], '#d5c2a9', false)); // neck
+boxes.push(B([-3.80, 1.50, 0.8845, -3.60, 1.76, 0.889], '#e0d2bd', false)); // face
+boxes.push(B([-3.77, 1.44, 0.889, -3.58, 1.54, 0.8935], '#e0d2bd', false)); // tilted jaw
+boxes.push(B([-3.82, 1.68, 0.889, -3.58, 1.80, 0.8935], '#1c1512', false)); // hair cap
+boxes.push(B([-3.83, 1.32, 0.889, -3.52, 1.47, 0.8935], '#cfc4b0', false)); // collar
+boxes.push(B([-3.50, 1.24, 0.889, -3.43, 1.36, 0.8935], '#a83226', false)); // red brush pot
+boxes.push(B([-3.80, 1.50, 0.8935, -3.745, 1.68, 0.897], '#cfbda6', false)); // cheek plane
+boxes.push(B([-3.78, 1.615, 0.8935, -3.62, 1.64, 0.897], '#c4b298', false)); // brow shadow
+boxes.push(B([-3.705, 1.545, 0.8935, -3.675, 1.63, 0.897], '#d8c6ae', false)); // nose
+boxes.push(B([-3.72, 1.452, 0.8935, -3.64, 1.462, 0.897], '#b8a58c', false)); // chin line
+boxes.push(B([-3.655, 1.52, 0.8935, -3.60, 1.575, 0.897], '#bc8b80', false)); // rose cheek
+boxes.push(B([-3.76, 1.63, 0.8935, -3.72, 1.655, 0.897], '#2a211c', false)); // eyes
+boxes.push(B([-3.67, 1.63, 0.8935, -3.63, 1.655, 0.897], '#2a211c', false));
+boxes.push(B([-3.72, 1.505, 0.8935, -3.66, 1.525, 0.897], '#96554a', false)); // mouth
+boxes.push(B([-3.63, 1.355, 0.8935, -3.585, 1.43, 0.897], '#4e4034', false)); // strap sliver
+boxes.push(B([-3.485, 1.36, 0.8935, -3.45, 1.44, 0.897], '#c9b48c', false)); // brushes
 
 // Akseli Gallen-Kallela — Lake Keitele (1905), over the sofa on the west wall.
-// Silvery-blue water, pale sky, dark far shore with its reflection, island at
-// right, and the stepped silver-grey zigzag wake streaks.
+// Silvery-blue water, graded sky, dark far shore breaking up into its
+// reflection, island at right — and the three crossing wake systems: the
+// stepped zigzags, a steeper diagonal set, and two broad soft bands.
 boxes.push(B([-5.71, 1.23, 1.73, -5.687, 1.82, 2.62], PFRAME, false));
+boxes.push(B([-5.687, 1.797, 1.73, -5.685, 1.82, 2.62], '#6b5f52', false)); // lit top edge
+boxes.push(B([-5.709, 1.19, 1.75, -5.7075, 1.228, 2.60], '#d4cfc4', false)); // wall shadow
 boxes.push(B([-5.687, 1.25, 1.75, -5.680, 1.80, 2.60], '#9fb2bd', false)); // water
 boxes.push(B([-5.680, 1.70, 1.75, -5.675, 1.80, 2.60], '#dfe5e2', false)); // sky
 boxes.push(B([-5.680, 1.63, 1.75, -5.675, 1.70, 2.60], '#2f3f52', false)); // far shore
 boxes.push(B([-5.680, 1.58, 1.75, -5.676, 1.63, 2.60], '#55697a', false)); // reflection
+boxes.push(B([-5.675, 1.76, 1.75, -5.670, 1.80, 2.60], '#eef2ef', false)); // sky top step
+boxes.push(B([-5.675, 1.70, 1.75, -5.670, 1.725, 2.60], '#d3dcd9', false)); // sky low step
 boxes.push(B([-5.675, 1.60, 1.75, -5.670, 1.70, 1.93], '#263646', false)); // island
-boxes.push(B([-5.675, 1.50, 1.82, -5.670, 1.53, 2.25], '#ccd8d6', false)); // zigzag wake
+boxes.push(B([-5.675, 1.565, 1.78, -5.670, 1.585, 1.90], '#31424f', false)); // island refl
+boxes.push(B([-5.675, 1.60, 1.98, -5.670, 1.615, 2.12], '#41556a', false)); // refl break-up
+boxes.push(B([-5.675, 1.585, 2.22, -5.670, 1.60, 2.34], '#41556a', false));
+boxes.push(B([-5.675, 1.605, 2.44, -5.670, 1.62, 2.55], '#41556a', false));
+boxes.push(B([-5.675, 1.50, 1.82, -5.670, 1.53, 2.25], '#ccd8d6', false)); // zigzag system
 boxes.push(B([-5.675, 1.44, 2.05, -5.670, 1.465, 2.50], '#ccd8d6', false));
 boxes.push(B([-5.675, 1.37, 1.78, -5.670, 1.395, 2.20], '#ccd8d6', false));
 boxes.push(B([-5.675, 1.30, 2.00, -5.670, 1.325, 2.45], '#ccd8d6', false));
+boxes.push(B([-5.670, 1.545, 2.30, -5.6655, 1.562, 2.46], '#dde8e4', false)); // diagonal system
+boxes.push(B([-5.670, 1.515, 2.20, -5.6655, 1.532, 2.36], '#dde8e4', false));
+boxes.push(B([-5.670, 1.487, 2.08, -5.6655, 1.503, 2.26], '#dde8e4', false));
+boxes.push(B([-5.670, 1.415, 1.80, -5.6655, 1.435, 2.30], '#c3d2d0', false)); // broad bands
+boxes.push(B([-5.670, 1.335, 1.88, -5.6655, 1.352, 2.38], '#c3d2d0', false));
 
 // Hugo Simberg — The Wounded Angel (1903), hall north wall, facing the entry.
 // Hung on the solid pier WEST of the kitchen doorway (the opening is
@@ -541,36 +568,68 @@ boxes.push(B([-5.675, 1.30, 2.00, -5.670, 1.325, 2.45], '#ccd8d6', false));
 // band, sandy path, two dark bearers carrying the white angel on a stretcher;
 // white blindfold, red speck.
 boxes.push(B([-2.44, 1.10, -2.55, -1.75, 1.68, -2.525], PFRAME, false));
+boxes.push(B([-2.44, 1.655, -2.525, -1.75, 1.68, -2.523], '#6b5f52', false)); // lit top edge
+boxes.push(B([-2.42, 1.06, -2.5485, -1.77, 1.098, -2.5465], '#d4cfc4', false)); // wall shadow
 boxes.push(B([-2.42, 1.12, -2.525, -1.77, 1.66, -2.518], '#7d8a76', false)); // park
 boxes.push(B([-2.42, 1.53, -2.518, -1.77, 1.66, -2.513], '#c3ccc9', false)); // sky
-boxes.push(B([-2.42, 1.48, -2.518, -1.77, 1.53, -2.513], '#8fa0a3', false)); // water
+boxes.push(B([-2.42, 1.48, -2.518, -1.77, 1.53, -2.513], '#8fa0a3', false)); // Töölönlahti
+boxes.push(B([-2.42, 1.525, -2.513, -1.77, 1.545, -2.511], '#a5aead', false)); // far bank
 boxes.push(B([-2.42, 1.12, -2.518, -1.77, 1.23, -2.513], '#9a8f7c', false)); // path
-boxes.push(B([-2.33, 1.16, -2.513, -2.24, 1.50, -2.508], '#26221e', false)); // rear bearer
-boxes.push(B([-1.97, 1.15, -2.513, -1.88, 1.52, -2.508], '#211d1a', false)); // front bearer
-boxes.push(B([-2.29, 1.235, -2.513, -1.90, 1.25, -2.508], '#b9a887', false)); // stretcher
+boxes.push(B([-2.385, 1.23, -2.513, -2.373, 1.42, -2.510], '#4d4a42', false)); // shrub
+boxes.push(B([-2.405, 1.36, -2.513, -2.355, 1.372, -2.510], '#4d4a42', false)); // twig
+boxes.push(B([-1.83, 1.23, -2.513, -1.818, 1.38, -2.510], '#4d4a42', false)); // shrub
+boxes.push(B([-2.325, 1.125, -2.510, -2.295, 1.17, -2.5075], '#1a1715', false)); // rear legs
+boxes.push(B([-2.28, 1.125, -2.510, -2.25, 1.17, -2.5075], '#1a1715', false));
+boxes.push(B([-2.33, 1.16, -2.513, -2.24, 1.50, -2.508], '#3d3833', false)); // rear bearer (jacket)
+boxes.push(B([-2.325, 1.50, -2.510, -2.245, 1.535, -2.5075], '#26221e', false)); // rear cap
+boxes.push(B([-1.96, 1.12, -2.510, -1.93, 1.165, -2.5075], '#16130f', false)); // front legs
+boxes.push(B([-1.92, 1.12, -2.510, -1.89, 1.165, -2.5075], '#16130f', false));
+boxes.push(B([-1.97, 1.15, -2.513, -1.88, 1.52, -2.508], '#211d1a', false)); // front bearer (coat)
+boxes.push(B([-1.965, 1.52, -2.510, -1.885, 1.555, -2.5075], '#16130f', false)); // front cap
+boxes.push(B([-2.29, 1.235, -2.513, -1.90, 1.25, -2.508], '#b9a887', false)); // stretcher poles
 boxes.push(B([-2.29, 1.265, -2.513, -1.90, 1.28, -2.508], '#b9a887', false));
+boxes.push(B([-2.30, 1.28, -2.506, -2.275, 1.30, -2.503], '#cbb59a', false)); // hands
+boxes.push(B([-1.925, 1.28, -2.506, -1.90, 1.30, -2.503], '#cbb59a', false));
 boxes.push(B([-2.235, 1.22, -2.510, -2.16, 1.38, -2.5055], '#e4e2d8', false)); // wings
 boxes.push(B([-2.04, 1.22, -2.510, -1.965, 1.36, -2.5055], '#e4e2d8', false));
 boxes.push(B([-2.20, 1.28, -2.513, -2.00, 1.44, -2.507], '#ecebe4', false)); // angel
-boxes.push(B([-2.13, 1.44, -2.513, -2.06, 1.50, -2.507], '#d9cfc0', false)); // head
-boxes.push(B([-2.14, 1.465, -2.507, -2.05, 1.485, -2.503], '#f6f4ee', false)); // blindfold
+boxes.push(B([-2.13, 1.44, -2.513, -2.06, 1.50, -2.507], '#d9cfc0', false)); // bowed head
+boxes.push(B([-2.125, 1.475, -2.505, -2.065, 1.505, -2.502], '#cfc0a0', false)); // hair
+boxes.push(B([-2.14, 1.455, -2.507, -2.05, 1.475, -2.503], '#f6f4ee', false)); // blindfold
+boxes.push(B([-2.075, 1.315, -2.505, -2.045, 1.34, -2.502], '#f4f2ec', false)); // snowdrop posy
+boxes.push(B([-2.07, 1.295, -2.505, -2.05, 1.315, -2.502], '#5a7a4a', false)); // stems
 boxes.push(B([-2.115, 1.30, -2.507, -2.085, 1.325, -2.503], '#a8342a', false)); // red speck
 
 // Helene Schjerfbeck — Green Apples (still life), bedroom west wall above the
 // south bedside table. Chalky ground, table band, three apples.
 boxes.push(B([-5.71, 1.03, -1.84, -5.69, 1.35, -1.45], PFRAME, false));
+boxes.push(B([-5.69, 1.328, -1.84, -5.688, 1.35, -1.45], '#6b5f52', false)); // lit top edge
+boxes.push(B([-5.709, 0.995, -1.82, -5.7075, 1.028, -1.47], '#d4cfc4', false)); // wall shadow
 boxes.push(B([-5.69, 1.05, -1.82, -5.684, 1.33, -1.47], '#cfc9bb', false)); // ground
 boxes.push(B([-5.684, 1.05, -1.82, -5.679, 1.14, -1.47], '#a89a85', false)); // table
-boxes.push(B([-5.681, 1.115, -1.78, -5.677, 1.135, -1.52], '#b3a793', false)); // shadow
-boxes.push(B([-5.679, 1.13, -1.76, -5.674, 1.20, -1.69], '#7fa055', false)); // apples
-boxes.push(B([-5.679, 1.135, -1.66, -5.674, 1.21, -1.585], '#a8b060', false));
-boxes.push(B([-5.679, 1.13, -1.56, -5.674, 1.185, -1.50], '#b06a45', false));
+boxes.push(B([-5.680, 1.112, -1.80, -5.6765, 1.118, -1.48], '#c4bcab', false)); // plate rim shadow
+boxes.push(B([-5.6815, 1.115, -1.79, -5.677, 1.135, -1.49], '#e3ded2', false)); // plate ellipse
+boxes.push(B([-5.6765, 1.128, -1.745, -5.673, 1.14, -1.675], '#b3a68f', false)); // cast shadows
+boxes.push(B([-5.6765, 1.13, -1.645, -5.673, 1.142, -1.575], '#b3a68f', false));
+boxes.push(B([-5.6765, 1.126, -1.545, -5.673, 1.138, -1.49], '#b3a68f', false));
+boxes.push(B([-5.676, 1.13, -1.76, -5.671, 1.20, -1.69], '#7fa055', false)); // apples
+boxes.push(B([-5.676, 1.135, -1.66, -5.671, 1.21, -1.585], '#a8b060', false));
+boxes.push(B([-5.676, 1.13, -1.56, -5.671, 1.185, -1.50], '#b06a45', false));
+boxes.push(B([-5.671, 1.195, -1.735, -5.669, 1.215, -1.72], '#5a4a30', false)); // stem specks
+boxes.push(B([-5.671, 1.205, -1.632, -5.669, 1.225, -1.617], '#5a4a30', false));
+boxes.push(B([-5.671, 1.18, -1.54, -5.669, 1.20, -1.525], '#5a4a30', false));
 
 // (relocated) abstract 60s screenprint — study east wall, over the desk
 boxes.push(B([2.085, 1.15, 2.55, 2.11, 1.95, 3.15], FRAME, false));
+boxes.push(B([2.076, 1.93, 2.55, 2.085, 1.95, 3.15], '#575049', false)); // lit top edge
+boxes.push(B([2.106, 1.108, 2.58, 2.108, 1.145, 3.12], '#d4cfc4', false)); // wall shadow
 boxes.push(B([2.078, 1.19, 2.59, 2.085, 1.91, 3.11], MUSTARD, false));
-boxes.push(B([2.072, 1.30, 2.70, 2.078, 1.80, 2.82], '#2e2a26', false));
-boxes.push(B([2.072, 1.45, 2.90, 2.078, 1.72, 3.05], '#f2ede1', false));
+boxes.push(B([2.072, 1.30, 2.70, 2.078, 1.80, 2.82], '#2e2a26', false)); // bar
+boxes.push(B([2.072, 1.32, 2.86, 2.078, 1.78, 2.90], '#4a4440', false)); // second bar
+boxes.push(B([2.0705, 1.49, 2.94, 2.076, 1.76, 3.09], '#e3dbc4', false)); // off-register ghost
+boxes.push(B([2.065, 1.45, 2.90, 2.0705, 1.72, 3.05], '#f2ede1', false)); // disc
+boxes.push(B([2.065, 1.26, 2.63, 2.0705, 1.34, 2.71], '#c1502e', false)); // red-orange dot
+boxes.push(B([2.065, 1.225, 2.98, 2.0705, 1.235, 3.08], '#2e2a26', false)); // signature dash
 
 // ============================================================== INTERACTABLES
 
@@ -633,6 +692,9 @@ interactables.push({
     { when: 'closed', box: [-1.849, 0.605, -4.16, -1.843, 0.628, -3.80], rgb: [1.4, 1.15, 0.45] }, // bottom seam
     { when: 'any',    box: [-2.02, 0.902, -4.15, -1.84, 0.908, -3.81],   rgb: [1.15, 1.0, 0.55] }, // worktop glow
     { when: 'open',   box: [-1.75, 0.737, -4.01, -1.61, 0.75, -3.95],    rgb: [1.7, 1.45, 0.6] },  // key halo
+    // halo pad under the coffee-table note ('note_key') — same taken-gating
+    // as the drawer glint: the note stays readable, the glow dies with the key
+    { when: 'any',    box: [-3.41, 0.342, 2.71, -3.16, 0.348, 3.07],     rgb: [1.25, 1.05, 0.55] },
   ],
 });
 
