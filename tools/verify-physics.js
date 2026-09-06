@@ -335,6 +335,24 @@ for(const [name, fn] of gaps){
   check(r.done, 'shaft B must reach the LEVEL 28 slab');
 }
 {
+  /* LEVEL 15 -> shaft B, ON FOOT: bench, hop the mouth gap onto the
+     ledge, then climb — the path a player actually walks */
+  const P = placeOnRoute(229*TILE, 24);
+  let onLedge = false, air = 0;
+  for(let f = 0; f < 300 && !onLedge; f++){
+    const ctrl = { right: true };
+    /* walk off the slab edge, then a COYOTE hop — the doorway's low
+       ceiling means jumping early just bonks */
+    if(!P.grounded && P.x > 233*TILE){ air++; ctrl.jump = air <= 9; }
+    step(P, ctrl);
+    if(P.grounded && P.x >= 236*TILE - 2 && Math.abs(feet(P) - 24*TILE) < 1.2) onLedge = true;
+  }
+  let up = { done: false };
+  if(onLedge) up = climbShaft(P, 16*TILE, 238*TILE, 1200);
+  console.log(`mezz -> shaft B    : ${onLedge ? 'ledge reached on foot' : 'LEDGE UNREACHABLE'}, ${up.done ? 'climbed to LEVEL 28' : 'CLIMB FAILED'}`);
+  check(onLedge && up.done, 'shaft B must be enterable on foot from the LEVEL 15 bench');
+}
+{
   /* LEVEL 28: jump back west over the shaft-B mouth (cols 234-237) */
   const P = placeOnRoute(241*TILE, 16);
   let ok = false;

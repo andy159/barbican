@@ -67,7 +67,10 @@ set(214,215,32,32,'T', true); set(236,243,32,32,'T', true); // wall feet
 set(222,223,17,29,'T');                     // shaft A west wall (door rows 30-31)
 set(228,229,25,31,'T');                     // shaft A east wall
 set(228,233,24,24,'#');                     // LEVEL 15 mezzanine slab
-set(232,233,17,23,'T');                     // shaft B west wall
+set(236,237,24,24,'#');                     // stepping ledge into the shaft-B slot
+                                            // (the 234-235 gap stays open as the
+                                            //  fall-through to the recovery climb)
+set(232,233,17,21,'T');                     // shaft B west wall (door rows 22-23)
 set(238,239,17,31,'T');                     // shaft B east wall
 set(230,233,25,31,'T');                     // fill the dead pocket under the mezzanine
                                             // (the 234-237 slot becomes a recovery shaft)
