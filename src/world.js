@@ -67,6 +67,9 @@ export function checkExit(P){
     if(!P.keys.flat){
       P.exitDeniedT = 90;
       P.deniedMsg = 'LOCKED — THE KEY IS ON CROMWELL TOWER';
+    }else if(!P.upHeld){
+      P.exitDeniedT = 60;
+      P.deniedMsg = 'PRESS ↑ TO ENTER — FIND THE STAGE DOOR KEY';
     }else if(typeof location !== 'undefined'){
       try{ localStorage.setItem('barbican.keys.flat', '1'); }catch(e){}
       location.href = 'flat.html';

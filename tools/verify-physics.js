@@ -1295,9 +1295,13 @@ function swarmRun(maxF = 1600){
   const refused = !P.enteredFlat && P.exitDeniedT > 0;
   P.keys.flat = true; P.exitDeniedT = 0;
   checkExit(P);
+  const walkPast = !P.enteredFlat;             // holding the key but not pressing up
+  P.upHeld = true;
+  checkExit(P);
   const admitted = P.enteredFlat === true;
-  console.log(`wallside door      : ${refused ? 'locked without the key' : 'NOT LOCKED (BAD)'}, ${admitted ? 'opens with it' : 'WILL NOT OPEN'}`);
-  check(refused && admitted, 'the flat door must be gated on the tower key');
+  console.log(`wallside door      : ${refused ? 'locked without the key' : 'NOT LOCKED (BAD)'}, ` +
+    `${walkPast ? 'walk-past safe' : 'AUTO-SUCKED (BAD)'}, ${admitted ? 'opens on ↑' : 'WILL NOT OPEN'}`);
+  check(refused && walkPast && admitted, 'the flat door: key-gated, ↑ to enter');
 
   /* the stage door refuses without the arts key, advances with it */
   initWorld('estate-route');

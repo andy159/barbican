@@ -41,6 +41,7 @@ const solid = (P, x, y) => level.overlapsSolid(x, y, P.w, P.h);
 export function step(P, ctrl){
   const T = TUNING;
   P.px = P.x; P.py = P.y;
+  P.upHeld = !!ctrl.up;
 
   /* afterimages fade even while frozen */
   for(const t of P.trail) t.life--;

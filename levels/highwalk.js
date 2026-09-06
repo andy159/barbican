@@ -92,6 +92,7 @@ export const HIGHWALK = {
     { tx: 222, ty: 4, text: "LEVEL 43 · ROOF" },
     { tx: 327, ty: 44, text: "LAKESIDE TERRACE" },
     { tx: 334, ty: 42, text: "WALLSIDE" },
+    { tx: 343, ty: 44, text: "STAGE DOOR KEY INSIDE" },
     { tx: 341, ty: 45, text: "CENTRAL PONDS →" },
     { tx: 447, ty: 44, text: "WAY OUT →" },
   ],
