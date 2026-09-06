@@ -536,23 +536,25 @@ boxes.push(B([-5.675, 1.37, 1.78, -5.670, 1.395, 2.20], '#ccd8d6', false));
 boxes.push(B([-5.675, 1.30, 2.00, -5.670, 1.325, 2.45], '#ccd8d6', false));
 
 // Hugo Simberg — The Wounded Angel (1903), hall north wall, facing the entry.
-// Grey-green park, pale sky over the water band, sandy path, two dark bearers
-// carrying the white angel on a stretcher; white blindfold, red speck.
-boxes.push(B([-1.97, 1.10, -2.55, -1.18, 1.68, -2.525], PFRAME, false));
-boxes.push(B([-1.95, 1.12, -2.525, -1.20, 1.66, -2.518], '#7d8a76', false)); // park
-boxes.push(B([-1.95, 1.53, -2.518, -1.20, 1.66, -2.513], '#c3ccc9', false)); // sky
-boxes.push(B([-1.95, 1.48, -2.518, -1.20, 1.53, -2.513], '#8fa0a3', false)); // water
-boxes.push(B([-1.95, 1.12, -2.518, -1.20, 1.23, -2.513], '#9a8f7c', false)); // path
-boxes.push(B([-1.85, 1.16, -2.513, -1.75, 1.50, -2.508], '#26221e', false)); // rear bearer
-boxes.push(B([-1.44, 1.15, -2.513, -1.34, 1.52, -2.508], '#211d1a', false)); // front bearer
-boxes.push(B([-1.80, 1.235, -2.513, -1.36, 1.25, -2.508], '#b9a887', false)); // stretcher
-boxes.push(B([-1.80, 1.265, -2.513, -1.36, 1.28, -2.508], '#b9a887', false));
-boxes.push(B([-1.74, 1.22, -2.510, -1.66, 1.38, -2.5055], '#e4e2d8', false)); // wings
-boxes.push(B([-1.52, 1.22, -2.510, -1.44, 1.36, -2.5055], '#e4e2d8', false));
-boxes.push(B([-1.70, 1.28, -2.513, -1.48, 1.44, -2.507], '#ecebe4', false)); // angel
-boxes.push(B([-1.62, 1.44, -2.513, -1.54, 1.50, -2.507], '#d9cfc0', false)); // head
-boxes.push(B([-1.63, 1.465, -2.507, -1.53, 1.485, -2.503], '#f6f4ee', false)); // blindfold
-boxes.push(B([-1.585, 1.30, -2.507, -1.555, 1.325, -2.503], '#a8342a', false)); // red speck
+// Hung on the solid pier WEST of the kitchen doorway (the opening is
+// x -1.7..-0.8 — never span it). Grey-green park, pale sky over the water
+// band, sandy path, two dark bearers carrying the white angel on a stretcher;
+// white blindfold, red speck.
+boxes.push(B([-2.44, 1.10, -2.55, -1.75, 1.68, -2.525], PFRAME, false));
+boxes.push(B([-2.42, 1.12, -2.525, -1.77, 1.66, -2.518], '#7d8a76', false)); // park
+boxes.push(B([-2.42, 1.53, -2.518, -1.77, 1.66, -2.513], '#c3ccc9', false)); // sky
+boxes.push(B([-2.42, 1.48, -2.518, -1.77, 1.53, -2.513], '#8fa0a3', false)); // water
+boxes.push(B([-2.42, 1.12, -2.518, -1.77, 1.23, -2.513], '#9a8f7c', false)); // path
+boxes.push(B([-2.33, 1.16, -2.513, -2.24, 1.50, -2.508], '#26221e', false)); // rear bearer
+boxes.push(B([-1.97, 1.15, -2.513, -1.88, 1.52, -2.508], '#211d1a', false)); // front bearer
+boxes.push(B([-2.29, 1.235, -2.513, -1.90, 1.25, -2.508], '#b9a887', false)); // stretcher
+boxes.push(B([-2.29, 1.265, -2.513, -1.90, 1.28, -2.508], '#b9a887', false));
+boxes.push(B([-2.235, 1.22, -2.510, -2.16, 1.38, -2.5055], '#e4e2d8', false)); // wings
+boxes.push(B([-2.04, 1.22, -2.510, -1.965, 1.36, -2.5055], '#e4e2d8', false));
+boxes.push(B([-2.20, 1.28, -2.513, -2.00, 1.44, -2.507], '#ecebe4', false)); // angel
+boxes.push(B([-2.13, 1.44, -2.513, -2.06, 1.50, -2.507], '#d9cfc0', false)); // head
+boxes.push(B([-2.14, 1.465, -2.507, -2.05, 1.485, -2.503], '#f6f4ee', false)); // blindfold
+boxes.push(B([-2.115, 1.30, -2.507, -2.085, 1.325, -2.503], '#a8342a', false)); // red speck
 
 // Helene Schjerfbeck — Green Apples (still life), bedroom west wall above the
 // south bedside table. Chalky ground, table band, three apples.
@@ -613,7 +615,11 @@ kdBands.forEach(([za, zb], i) => {
   });
 });
 
-// THE ARTS CENTRE KEY — second drawer of the galley run
+// THE ARTS CENTRE KEY — second drawer of the galley run.
+// `glint`: warm emissive boxes the engine pulses while the key is unclaimed —
+// rgb values above 1.0 saturate through the lighting into a hot glow.
+// Seam strips show while kd2 is closed; the worktop glow always; a halo over
+// the key once the drawer is open. All die on pickup.
 interactables.push({
   id: 'arts_key', item: true, parent: 'kd2',
   label: 'take the Arts Centre key',
@@ -622,6 +628,26 @@ interactables.push({
   message: 'ARTS CENTRE KEY — the stage door will open now',
   store: 'barbican.keys.artsCentre',
   mark: '\u{1F511} ARTS CENTRE KEY',
+  glint: [
+    { when: 'closed', box: [-1.849, 0.812, -4.16, -1.843, 0.835, -3.80], rgb: [1.8, 1.5, 0.6] },   // top seam
+    { when: 'closed', box: [-1.849, 0.605, -4.16, -1.843, 0.628, -3.80], rgb: [1.4, 1.15, 0.45] }, // bottom seam
+    { when: 'any',    box: [-2.02, 0.902, -4.15, -1.84, 0.908, -3.81],   rgb: [1.15, 1.0, 0.55] }, // worktop glow
+    { when: 'open',   box: [-1.75, 0.737, -4.01, -1.61, 0.75, -3.95],    rgb: [1.7, 1.45, 0.6] },  // key halo
+  ],
+});
+
+// handwritten note on the coffee table — the player walks straight past it
+// coming in from the hall; re-readable, points at kd2
+interactables.push({
+  id: 'note_key', note: true, name: 'note', label: 'read note',
+  box: [-3.36, 0.34, 2.76, -3.18, 0.36, 3.02],
+  color: '#f6f2e6',
+  message: 'left a key for you in the kitchen drawer — second one down from the window. x',
+  deco: [
+    B([-3.34, 0.36, 2.80, -3.21, 0.365, 2.825], '#4a4a55', false),  // ink dashes
+    B([-3.33, 0.36, 2.86, -3.23, 0.365, 2.885], '#4a4a55', false),
+    B([-3.34, 0.36, 2.92, -3.26, 0.365, 2.945], '#4a4a55', false),
+  ],
 });
 
 // G-Plan sideboard sliding doors (two tracks)
@@ -731,5 +757,10 @@ export const scene = {
   sunIntensity: 0.5,
   boxes,
   interactables,
+  // one-shot zone hints (skipped/never shown once the named item is taken)
+  hints: [
+    { zone: [-2.5, -4.8, 0.0, -2.6], item: 'arts_key',
+      message: 'something in the kitchen glints…' },
+  ],
   spawn: { pos: [-0.7, 0, 0.05], yaw: -2.19, pitch: 0 },
 };

@@ -146,7 +146,9 @@ function buildMesh(boxes) {
   };
   for (const entry of boxes) {
     const [a, b, c0, d, e, f] = entry.box;
-    const col = hexToRgb(entry.color || '#cccccc');
+    // entry.rgb (raw array, values may exceed 1.0 for emissive-hot surfaces)
+    // takes precedence over entry.color hex
+    const col = entry.rgb || hexToRgb(entry.color || '#cccccc');
     quad([d, b, c0], [d, e, c0], [d, e, f], [d, b, f], [1, 0, 0], col);    // +X
     quad([a, b, f], [a, e, f], [a, e, c0], [a, b, c0], [-1, 0, 0], col);   // -X
     quad([a, e, f], [d, e, f], [d, e, c0], [a, e, c0], [0, 1, 0], col);    // +Y
@@ -266,11 +268,27 @@ export function createEngine(canvas, scene) {
 
   function rebuildDynamic() {
     const entries = [];
+    const pulse = 0.78 + 0.30 * Math.sin(performance.now() / 280);
     for (const it of inter) {
       if (it.exit) continue;                     // doors draw in the static scene
       if (it.item) {
         const p = byId[it.parent];
         if (!it.taken && p && p.t > 0.85) entries.push({ box: it.box, color: it.color });
+        if (!it.taken && it.glint) {
+          // warm glint leaking from the seam / glowing on the worktop —
+          // gated on the parent's open state, killed by pickup
+          const pt = p ? p.t : 0;
+          for (const g of it.glint) {
+            if (g.when === 'closed' && pt > 0.15) continue;
+            if (g.when === 'open' && pt < 0.85) continue;
+            entries.push({ box: g.box, rgb: g.rgb.map((v) => v * pulse) });
+          }
+        }
+        continue;
+      }
+      if (it.note) {
+        entries.push({ box: it.box, color: it.color });
+        if (it.deco) entries.push(...it.deco);
         continue;
       }
       entries.push({ box: currentBox(it), color: it.color });
@@ -334,7 +352,7 @@ export function createEngine(canvas, scene) {
         try { has = localStorage.getItem(aimed.needsStore) === '1'; } catch (_) { /* ignore */ }
         promptEl.textContent = `[E] ${has ? aimed.labelHas : aimed.labelNot}`;
       } else {
-        promptEl.textContent = aimed.item
+        promptEl.textContent = (aimed.item || aimed.note)
           ? `[E] ${aimed.label}`
           : `[E] ${aimed.t > 0.5 ? 'close' : 'open'} ${aimed.name}`;
       }
@@ -349,6 +367,12 @@ export function createEngine(canvas, scene) {
       window.location.href = aimed.href;
       return true;
     }
+    if (aimed.note) {
+      // re-readable: flash the message, leave the note in place
+      flashMsg = aimed.message || '';
+      flashUntil = performance.now() + 4000;
+      return true;
+    }
     if (aimed.item) {
       aimed.taken = true;
       flashMsg = aimed.message || 'taken';
@@ -361,7 +385,26 @@ export function createEngine(canvas, scene) {
     return true;
   }
 
+  const hints = (scene.hints || []).map((h) => ({ ...h, shown: false }));
+  const glintLive = () => inter.some((it) => it.item && !it.taken && it.glint);
+
   function updateInteract(dt) {
+    // pulse the glint: keep the dynamic mesh rebuilding while a glint is live
+    if (glintLive()) dynDirty = true;
+    // one-shot zone hints
+    for (const h of hints) {
+      if (h.shown) continue;
+      const [hx0, hz0, hx1, hz1] = h.zone;
+      if (player.pos[0] > hx0 && player.pos[0] < hx1
+          && player.pos[2] > hz0 && player.pos[2] < hz1) {
+        h.shown = true;
+        const need = h.item && byId[h.item];
+        if (!need || !need.taken) {
+          flashMsg = h.message;
+          flashUntil = performance.now() + 3500;
+        }
+      }
+    }
     for (const it of inter) {
       if (it.item) continue;
       const target = it.open ? 1 : 0;

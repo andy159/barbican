@@ -776,8 +776,8 @@ function placeC(x, surfaceRow, abilities = {}){
 /* structural sanity of the generated level */
 {
   level.loadRoom(CONSERVATORY);
-  const benches = [[8,51],[113,51],[131,35],[204,23]];
-  check(benches.every(([x,y]) => level.tileAt(x,y) === 'B'), 'conservatory: all four benches present');
+  const benches = [[8,51],[113,51],[131,35],[204,23],[276,29]];
+  check(benches.every(([x,y]) => level.tileAt(x,y) === 'B'), 'conservatory: all five route benches present');
   check(level.tileAt(130,52) === '-' && level.tileAt(133,52) === '-', 'conservatory: scuffed line at secret');
   check(level.tileAt(27,54) === 'W' && level.tileAt(60,54) === 'W', 'conservatory: koi ponds present');
   check([[240,23],[257,26],[273,29],[293,29],[309,32]].every(([x,y]) => level.tileAt(x,y) === '^'),
