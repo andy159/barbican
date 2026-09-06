@@ -118,6 +118,7 @@ const signs = [
   [203,22,'PALM WALK'],
   [236,22,'ARID HOUSE'],
   [335,41,'DANGER · IRRIGATION TEST'],
+  [337,39,'DASH THROUGH THE GOLDEN NODE'],
   [395,39,'WAY OUT →'],
 ];
 
