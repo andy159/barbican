@@ -90,6 +90,7 @@ set(326,335,48,48,'='); set(326,335,49,51,'#');  // lakeside terrace
 set(340,341,48,48,'='); set(340,341,49,49,'#');  // stepping stones
 set(346,347,48,48,'='); set(346,347,49,49,'#');
 set(351,359,48,48,'='); set(351,359,49,51,'#');  // way out
+set(358,359,46,47,'E');                     // exit -> the Arts Centre
 set(328,328,47,47,'B');                     // bench: lakeside
 set(276,359,52,55,'W');                     // lake basin under descent + stones
 

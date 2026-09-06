@@ -20,7 +20,7 @@ export function makePlayer(){
     bargeWind: 0, bargeLeft: 0, prevBarge: false, shake: 0,
     trail: [],                                   // dash afterimages
     sx: 1, sy: 1,                                // squash/stretch scales
-    deaths: 0, flash: 0,
+    deaths: 0, flash: 0, dashNote: 0,
     checkpoint: { x: level.spawn.x, y: level.spawn.y },   // last bench rested at
     keys: { flat: false },
     abilities: { wallJump: true, dash: false, barge: false, grapple: false },
@@ -249,6 +249,13 @@ function pitCheck(P){
   const bx = Math.floor((P.x + P.w/2)/TILE), by = Math.floor((P.y + P.h/2)/TILE);
   if(level.tileAt(bx, by) === 'B')
     P.checkpoint = { x: bx*TILE, y: (by+1)*TILE - P.h };
+
+  /* dash pickup: touching a '*' tile grants the dash (flash + freeze) */
+  if(level.tileAt(bx, by) === '*' && !P.abilities.dash){
+    P.abilities.dash = true; P.dashes = 1;
+    P.freeze = 12; P.flash = 14; P.dashNote = 300;
+  }
+  if(P.dashNote > 0) P.dashNote--;
 
   /* the flat key: a small ceremony on pickup */
   if(level.tileAt(bx, by) === 'K'){

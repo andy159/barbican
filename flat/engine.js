@@ -80,7 +80,7 @@ varying vec3 vCol;
 varying float vDist;
 uniform vec3 uHaze;
 void main() {
-  float fog = clamp((vDist - 12.0) / 60.0, 0.0, 0.85);
+  float fog = clamp((vDist - 14.0) / 110.0, 0.0, 0.8);
   gl_FragColor = vec4(mix(vCol, uHaze, fog), 1.0);
 }`;
 
@@ -236,6 +236,134 @@ export function createEngine(canvas, scene) {
     pitch: scene.spawn.pitch || 0,
   };
 
+  // ------------------------------------------------------------ interactables
+  // Openable drawers/doors (a front box that slides along `dir` with an eased
+  // animation) and pickup items (visible/aimable once their parent is open).
+
+  const REACH = 1.6;
+  const easeT = (t) => t * t * (3 - 2 * t); // smoothstep
+  const inter = (scene.interactables || []).map((d) => ({
+    ...d, t: 0, open: false, taken: false, speed: 4.5,
+  }));
+  const items = inter.filter((it) => it.item);
+  const byId = Object.fromEntries(inter.map((it) => [it.id, it]));
+  for (const it of items) { // restore persisted pickups
+    if (!it.store) continue;
+    try { if (localStorage.getItem(it.store) === '1') it.taken = true; } catch (_) { /* ignore */ }
+  }
+
+  const dynBuf = gl.createBuffer();
+  let dynCount = 0;
+  let dynDirty = true;
+
+  function currentBox(it) {
+    const e = easeT(it.t);
+    const [dx, dy, dz] = it.dir || [0, 0, 0];
+    const b = it.box;
+    return [b[0] + dx * e, b[1] + dy * e, b[2] + dz * e,
+            b[3] + dx * e, b[4] + dy * e, b[5] + dz * e];
+  }
+
+  function rebuildDynamic() {
+    const entries = [];
+    for (const it of inter) {
+      if (it.item) {
+        const p = byId[it.parent];
+        if (!it.taken && p && p.t > 0.85) entries.push({ box: it.box, color: it.color });
+        continue;
+      }
+      entries.push({ box: currentBox(it), color: it.color });
+      if (it.t > 0.85 && it.reveal) entries.push(...it.reveal);
+    }
+    const data = buildMesh(entries);
+    dynCount = data.length / 9;
+    gl.bindBuffer(gl.ARRAY_BUFFER, dynBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
+    dynDirty = false;
+  }
+
+  // ray vs AABB (slab method): entry distance along d, or Infinity
+  function rayBox(o, d, b) {
+    let t0 = 0, t1 = Infinity;
+    for (let a = 0; a < 3; a++) {
+      const inv = 1 / d[a];
+      let ta = (b[a] - o[a]) * inv, tb = (b[a + 3] - o[a]) * inv;
+      if (ta > tb) { const tmp = ta; ta = tb; tb = tmp; }
+      if (ta > t0) t0 = ta;
+      if (tb < t1) t1 = tb;
+      if (t0 > t1) return Infinity;
+    }
+    return t0;
+  }
+
+  let aimed = null;
+  function updateAim() {
+    const basis = cameraBasis(player.yaw, player.pitch);
+    const o = [player.pos[0], player.pos[1] + EYE_HEIGHT, player.pos[2]];
+    let best = REACH, hit = null;
+    for (const it of inter) {
+      let box;
+      if (it.item) {
+        const p = byId[it.parent];
+        if (it.taken || !p || p.t < 0.9) continue;
+        box = it.box;
+      } else {
+        const c = currentBox(it); // widen thin fronts a touch for aiming
+        box = [c[0] - 0.03, c[1] - 0.02, c[2] - 0.03,
+               c[3] + 0.03, c[4] + 0.02, c[5] + 0.03];
+      }
+      const t = rayBox(o, basis.fwd, box);
+      if (t < best) { best = t; hit = it; }
+    }
+    aimed = hit;
+  }
+
+  const promptEl = document.getElementById('prompt');
+  const markEl = document.getElementById('keymark');
+  let flashMsg = '', flashUntil = 0;
+  function updateHud() {
+    if (markEl) {
+      markEl.textContent = items.filter((it) => it.taken).map((it) => it.mark).join('  ');
+    }
+    if (!promptEl) return;
+    if (performance.now() < flashUntil) { promptEl.textContent = flashMsg; return; }
+    if (aimed) {
+      promptEl.textContent = aimed.item
+        ? `[E] ${aimed.label}`
+        : `[E] ${aimed.t > 0.5 ? 'close' : 'open'} ${aimed.name}`;
+    } else {
+      promptEl.textContent = '';
+    }
+  }
+
+  function tryInteract() {
+    if (!aimed) return false;
+    if (aimed.item) {
+      aimed.taken = true;
+      flashMsg = aimed.message || 'taken';
+      flashUntil = performance.now() + 4000;
+      if (aimed.store) { try { localStorage.setItem(aimed.store, '1'); } catch (_) { /* ignore */ } }
+      dynDirty = true;
+    } else {
+      aimed.open = !aimed.open;
+    }
+    return true;
+  }
+
+  function updateInteract(dt) {
+    for (const it of inter) {
+      if (it.item) continue;
+      const target = it.open ? 1 : 0;
+      if (it.t !== target) {
+        const step = (target > it.t ? 1 : -1) * it.speed * dt;
+        it.t = Math.max(0, Math.min(1, it.t + step));
+        dynDirty = true;
+      }
+    }
+    updateAim();
+    updateHud();
+  }
+
   // ------------------------------------------------------------------- input
   const keys = new Set();
   const KEYMAP = {
@@ -245,6 +373,11 @@ export function createEngine(canvas, scene) {
     KeyD: 'right', ArrowRight: 'right',
   };
   window.addEventListener('keydown', (e) => {
+    if (e.code === 'KeyE' || e.code === 'Enter') {
+      tryInteract();
+      e.preventDefault();
+      return;
+    }
     const k = KEYMAP[e.code];
     if (k) { keys.add(k); e.preventDefault(); }
   });
@@ -274,6 +407,7 @@ export function createEngine(canvas, scene) {
 
   // ------------------------------------------------------------------ update
   function update(dt) {
+    updateInteract(dt);
     let mx = 0, mz = 0; // local: mx = strafe right, mz = forward
     if (keys.has('fwd')) mz += 1;
     if (keys.has('back')) mz -= 1;
@@ -339,6 +473,16 @@ export function createEngine(canvas, scene) {
     gl.uniform1f(su.sunI, scene.sunIntensity);
     gl.uniform3fv(su.haze, horizon);
     gl.drawArrays(gl.TRIANGLES, 0, vertCount);
+
+    // interactables (drawers, doors, the key) — small dynamic mesh
+    if (dynDirty) rebuildDynamic();
+    if (dynCount) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, dynBuf);
+      gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, stride, 0);
+      gl.vertexAttribPointer(aNor, 3, gl.FLOAT, false, stride, 12);
+      gl.vertexAttribPointer(aCol, 3, gl.FLOAT, false, stride, 24);
+      gl.drawArrays(gl.TRIANGLES, 0, dynCount);
+    }
   }
 
   // -------------------------------------------------------------------- loop
@@ -355,6 +499,9 @@ export function createEngine(canvas, scene) {
 
   return {
     player,
+    interactables: inter,
+    tryInteract,
+    aimedId: () => (aimed ? aimed.id : null),
     start() {
       if (running) return;
       running = true;

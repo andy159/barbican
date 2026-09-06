@@ -10,6 +10,8 @@
 import { TILE, tileAt, solidAt } from './level.js';
 import * as level from './level.js';
 import { cam, VIEW_W, VIEW_H } from './camera.js';
+import { interiorFrame, drawInteriorBackdrop, drawInteriorTile,
+         drawInteriorProps, drawInteriorOverlay } from './interior.js';
 
 let ctx = null;
 export function bindCanvas(canvas){
@@ -109,6 +111,16 @@ export function render(P, alpha, debugOn, fps){
   const shakeX = shakeAmp * (P.shake % 2 ? 1 : -1);
   const cx = Math.round(cam.x) + shakeX, cy = Math.round(cam.y);
 
+  /* interior rooms (arts centre etc.) swap the whole backdrop and tile
+     skins via src/interior.js; outdoor rooms get the daylight stack */
+  const interiorRoom = !!(level.currentRoom() && level.currentRoom().interior);
+  if(interiorRoom){ interiorFrame(P); drawInteriorBackdrop(ctx, cx, cy); }
+  else backdropDaylight(P, cx, cy);
+
+  drawScene(P, alpha, cx, cy, interiorRoom, debugOn, fps);
+}
+
+function backdropDaylight(P, cx, cy){
   /* sky — bright hazy London daylight, warmer at the horizon */
   const g = ctx.createLinearGradient(0,0,0,VIEW_H);
   g.addColorStop(0,'#a8c4dc'); g.addColorStop(0.6,'#cfd8dc'); g.addColorStop(1,'#e8e0cd');
@@ -145,7 +157,9 @@ export function render(P, alpha, debugOn, fps){
     }
     ctx.globalAlpha = 1;
   }
+}
 
+function drawScene(P, alpha, cx, cy, interiorRoom, debugOn, fps){
   /* tiles — only the visible range */
   const x0 = Math.floor(cx/TILE), x1 = Math.floor((cx+VIEW_W)/TILE);
   const y0 = Math.floor(cy/TILE), y1 = Math.floor((cy+VIEW_H)/TILE);
@@ -156,6 +170,7 @@ export function render(P, alpha, debugOn, fps){
       const empty = t === ' ' || t === '' || t === 'P';
       if(empty && !inRect) continue;
       const sx = tx*TILE - cx, sy = ty*TILE - cy;
+      if(interiorRoom && !empty){ drawInteriorTile(ctx, t, tx, ty, sx, sy); continue; }
       const topExposed = !solidAt(tx,ty-1);
       if(empty){
         /* nothing to draw — the facade overlay below closes the skin */
@@ -287,13 +302,16 @@ export function render(P, alpha, debugOn, fps){
     }
   }
 
-  /* room signage (interior signs hide until you're inside) */
-  for(const s of (level.currentRoom().signs || [])){
-    const indoors = level.interiorAt(s.tx*TILE+4, s.ty*TILE+4);
-    ctx.globalAlpha = indoors ? insideT : 1;
-    signAt(s.tx*TILE - cx, s.ty*TILE - cy, s.text);
+  /* room signage (interior rooms draw their own orange plates; the
+     tower's indoor signs hide until you're inside) */
+  if(!interiorRoom){
+    for(const s of (level.currentRoom().signs || [])){
+      const indoors = level.interiorAt(s.tx*TILE+4, s.ty*TILE+4);
+      ctx.globalAlpha = indoors ? insideT : 1;
+      signAt(s.tx*TILE - cx, s.ty*TILE - cy, s.text);
+    }
+    ctx.globalAlpha = 1;
   }
-  ctx.globalAlpha = 1;
 
   /* walkway planters */
   for(const [lx,ly] of (level.currentRoom().planters || []))
@@ -311,6 +329,9 @@ export function render(P, alpha, debugOn, fps){
     ctx.fillStyle = '#fff3c4'; ctx.fillRect(x+7, y,  2, 1);
   }
 
+  /* interior props: curtain, projector, the Mothlight screen, plates */
+  if(interiorRoom) drawInteriorProps(ctx, cx, cy);
+
   /* dash afterimages, oldest faintest */
   for(const t of P.trail){
     ctx.globalAlpha = Math.max(0, t.life/28);
@@ -324,15 +345,20 @@ export function render(P, alpha, debugOn, fps){
   const iy = P.py + (P.y-P.py)*alpha - cy;
   drawPlayer(P, ix, iy);
 
-  /* bright atmospheric haze at the base (fades away indoors) */
-  ctx.globalAlpha = 1 - insideT;
-  const haze = ctx.createLinearGradient(0,VIEW_H-32,0,VIEW_H);
-  haze.addColorStop(0,'rgba(226,222,208,0)'); haze.addColorStop(1,'rgba(226,222,208,0.28)');
-  ctx.fillStyle = haze; ctx.fillRect(0,VIEW_H-32,VIEW_W,32);
-  ctx.globalAlpha = 1;
-  const vig = ctx.createRadialGradient(VIEW_W/2,VIEW_H/2,90,VIEW_W/2,VIEW_H/2,210);
-  vig.addColorStop(0,'rgba(30,40,60,0)'); vig.addColorStop(1,'rgba(30,40,60,0.14)');
-  ctx.fillStyle = vig; ctx.fillRect(0,0,VIEW_W,VIEW_H);
+  if(interiorRoom){
+    /* beam, gloom vignette, pickup card */
+    drawInteriorOverlay(ctx, cx, cy, P);
+  }else{
+    /* bright atmospheric haze at the base (fades away in the tower) */
+    ctx.globalAlpha = 1 - insideT;
+    const haze = ctx.createLinearGradient(0,VIEW_H-32,0,VIEW_H);
+    haze.addColorStop(0,'rgba(226,222,208,0)'); haze.addColorStop(1,'rgba(226,222,208,0.28)');
+    ctx.fillStyle = haze; ctx.fillRect(0,VIEW_H-32,VIEW_W,32);
+    ctx.globalAlpha = 1;
+    const vig = ctx.createRadialGradient(VIEW_W/2,VIEW_H/2,90,VIEW_W/2,VIEW_H/2,210);
+    vig.addColorStop(0,'rgba(30,40,60,0)'); vig.addColorStop(1,'rgba(30,40,60,0.14)');
+    ctx.fillStyle = vig; ctx.fillRect(0,0,VIEW_W,VIEW_H);
+  }
 
   if(P.flash > 0){ ctx.fillStyle = `rgba(232,226,212,${P.flash/16})`; ctx.fillRect(0,0,VIEW_W,VIEW_H); }
 

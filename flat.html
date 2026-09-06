@@ -17,14 +17,21 @@
     cursor:crosshair;}
   #hud{font-size:12px;letter-spacing:.08em;color:#7e8aa8;text-transform:uppercase;}
   #hud b{color:var(--line-yellow);font-weight:normal;}
+  #prompt{position:absolute;left:0;right:0;bottom:12%;text-align:center;
+    font-size:14px;letter-spacing:.12em;color:var(--warm);
+    text-shadow:0 1px 2px rgba(10,13,28,.8);pointer-events:none;
+    text-transform:uppercase;}
+  #keymark{position:absolute;top:6px;right:8px;font-size:12px;
+    letter-spacing:.1em;color:var(--line-yellow);pointer-events:none;
+    text-shadow:0 1px 2px rgba(10,13,28,.8);}
   #title{font-size:13px;letter-spacing:.35em;color:var(--warm);}
   #title span{color:var(--line-yellow);}
 </style>
 </head>
 <body>
 <div id="title">THE <span>BARBICAN</span> · TYPE 20 FLAT</div>
-<div id="frame"><canvas id="c" width="320" height="180"></canvas></div>
-<div id="hud"><b>CLICK</b> to look · <b>WASD</b> move · <b>ESC</b> release</div>
+<div id="frame"><canvas id="c" width="320" height="180"></canvas><div id="prompt"></div><div id="keymark"></div></div>
+<div id="hud"><b>CLICK</b> to look · <b>WASD</b> move · <b>E</b> interact · <b>ESC</b> release</div>
 <script type="module" src="flat/main.js"></script>
 </body>
 </html>
