@@ -198,6 +198,7 @@ function placeOnRoute(x, surfaceRow, abilities = {}){
   check((HIGHWALK.fountains || []).length === 8, 'the eight terrace fountains are placed');
   check(!level.solidAt(122,46) && !level.solidAt(122,47), 'service shaft east door');
   check(!level.solidAt(214,30) && !level.solidAt(214,31), 'tower west door');
+  check(level.solidAt(242,14) && level.solidAt(242,15), 'LEVEL 28 east face sealed');
   check(level.tileAt(213,27) === '<' && level.tileAt(213,3) === '<', 'balcony prows on the tower face');
 }
 
