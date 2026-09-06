@@ -78,6 +78,7 @@ set(216,233,16,16,'#'); set(238,243,16,16,'#');   // LEVEL 28 slab (shaft B mout
 set(220,221,8,13,'T');                      // shaft C east wall (door rows 14-15)
 set(240,243,7,13,'T');                      // upper mass east (headroom over LEVEL 28)
 set(220,243,6,6,'=');                       // the roof
+set(240,241,1,5,'G');                       // roof gate: opens with the key
 set(242,243,4,5,'T');                       // crown stub at the east edge
 set(230,230,23,23,'B');                     // bench: LEVEL 15
 set(224,224,5,5,'B');                       // bench: roof

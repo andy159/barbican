@@ -288,6 +288,16 @@ function drawScene(P, alpha, cx, cy, interiorRoom, consMode, debugOn, fps){
         }
         ctx.fillStyle = '#26332b'; ctx.fillRect(sx, sy, 1, TILE);
         ctx.fillRect(sx+TILE-1, sy, 1, TILE);
+      }else if(t === 'G'){
+        /* roof security gate: blue-painted bars, brass lock */
+        ctx.fillStyle = '#2c3a52'; ctx.fillRect(sx, sy, 2, TILE);
+        ctx.fillRect(sx+6, sy, 2, TILE);
+        ctx.fillStyle = '#37588a'; ctx.fillRect(sx+3, sy, 2, TILE);
+        if(ty % 3 === 0){ ctx.fillStyle = '#4a6ea8'; ctx.fillRect(sx, sy+3, TILE, 1); }
+        if(!solidAt(tx, ty+1) === false && tileAt(tx, ty+1) !== 'G' && tileAt(tx-1, ty) !== 'G'){
+          ctx.fillStyle = '#e8b92e'; ctx.fillRect(sx+2, sy+3, 3, 3);   // the lock
+          ctx.fillStyle = '#a37c14'; ctx.fillRect(sx+3, sy+4, 1, 1);
+        }
       }else if(t === 'K'){
         if(tileAt(tx, ty+1) === 'K') continue;   // draw only the column's base
         /* THE KEY: big, golden, impossible to miss */

@@ -263,13 +263,18 @@ function pitCheck(P){
   }
   if(P.dashNote > 0) P.dashNote--;
 
-  /* the flat key: generous grab zone, a small ceremony on pickup */
-  if(!P.keys.flat && level.overlapsChar(P.x-6, P.y-6, P.w+12, P.h+12, 'K')){
+  /* the flat key: generous grab zone, a small ceremony on pickup —
+     and the roof gate ('G') swings open with it. Also fires for a
+     returning player who already holds the flag, so the gate never
+     stays shut on them. */
+  if(level.overlapsChar(P.x-6, P.y-6, P.w+12, P.h+12, 'K')){
     for(let ty = by-8; ty <= by+8; ty++)
-      for(let tx = bx-2; tx <= bx+2; tx++)
-        if(level.tileAt(tx, ty) === 'K') level.clearTile(tx, ty);
+      for(let tx = bx-8; tx <= bx+8; tx++){
+        const t = level.tileAt(tx, ty);
+        if(t === 'K' || t === 'G') level.clearTile(tx, ty);
+      }
+    if(!P.keys.flat){ P.flash = 16; P.freeze = 8; }
     P.keys.flat = true;
-    P.flash = 16; P.freeze = 8;
   }
   if(P.exitDeniedT > 0) P.exitDeniedT--;
 

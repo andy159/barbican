@@ -1311,6 +1311,26 @@ function swarmRun(maxF = 1600){
   check(stageLocked && stageOpen, 'the way out must be gated on the Arts Centre key');
 }
 
+/* --- the roof gate: shut without the key, open once it's taken --- */
+{
+  level.loadRoom(HIGHWALK);
+  check(level.tileAt(240,1) === 'G' && level.tileAt(241,5) === 'G', 'roof gate present');
+  const P = makePlayer();
+  P.x = 234*TILE; P.y = 6*TILE - H; P.px = P.x; P.py = P.y;
+  P.keys.flat = true;                    // even a returning key-holder...
+  /* strip the key column so only the gate stands (worst case) */
+  let maxX = P.x;
+  for(let f = 0; f < 300; f++){
+    step(P, { right: true, jump: P.grounded && f % 40 < 2 });
+    maxX = Math.max(maxX, P.x);
+    if(level.tileAt(240,3) === ' ' && P.x >= 239*TILE) break;
+  }
+  const opened = level.tileAt(240,3) === ' ' && level.tileAt(241,5) === ' ';
+  const past = opened && maxX >= 239*TILE;
+  console.log(`roof gate          : ${opened ? 'swung open at the key' : 'STILL SHUT (BAD)'}${past ? ', crossed' : ''}`);
+  check(past, 'crossing the key zone must open the gate');
+}
+
 /* --- the roof key cannot be jumped over --- */
 {
   const P = placeOnRoute(222*TILE, 6);
