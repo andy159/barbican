@@ -22,11 +22,19 @@ const MOODS = {
                  scale: [0,3,5,7,10,12,15], pace: 4.0, lp: 900, padGain: 0.060, melGain: 0.040 },
   boss:        { root: 110.00, chords: [[0,3,7,10],[0,3,6,10]],
                  scale: [0,3,5,6,7,10], pace: 1.2, lp: 1200, padGain: 0.055, melGain: 0.045, pulse: true },
-  mothlight:   { root: 0, chords: [], scale: [], pace: 99, lp: 400, padGain: 0, melGain: 0, purr: true },
+  mothlight:   { root: 0, chords: [], scale: [], pace: 99, lp: 400, padGain: 0, melGain: 0, purrLvl: 0.035 },
   outro:       { root: 220.00, chords: [[0,4,7,11],[5,9,14,16],[0,4,9,12],[7,11,14,19]],
                  scale: [0,4,7,9,12,16], pace: 2.2, lp: 2000, padGain: 0.055, melGain: 0.065 },
   mozart:      { root: 392.00, chords: [], scale: [], pace: 99, lp: 2600,
                  padGain: 0, melGain: 0, seq: true },
+  foyer:       { root: 146.83, chords: [[0,4,7,11],[5,9,12],[2,5,9,12],[0,4,7,11]],
+                 scale: [0,4,7,9,12], pace: 3.0, lp: 1400, padGain: 0.045, melGain: 0.050 },
+  theatre:     { root: 98.00,  chords: [[0,3,7,14],[0,5,10,14],[0,3,8,14]],
+                 scale: [0,3,7,10,14], pace: 7.0, lp: 800, padGain: 0.065, melGain: 0.035, wet: 0.55 },
+  cinema:      { root: 98.00,  chords: [[0,7,12]], scale: [], pace: 99, lp: 500,
+                 padGain: 0.018, melGain: 0, purrLvl: 0.018 },
+  arid:        { root: 220.00, chords: [[0,3,7],[0,5,7]], scale: [0,3,7,12,15],
+                 pace: 6.5, lp: 1800, padGain: 0.028, melGain: 0.038, wet: 0.12 },
 };
 
 /* Eine kleine Nachtmusik, K.525 — opening phrase, transcribed relative
@@ -34,14 +42,23 @@ const MOODS = {
    [semitone|null(rest), beats] at allegro ~143bpm. */
 const EKN_BEAT = 0.42;
 const EKN_LEAD = [
+  /* the rocket */
   [0,1],[null,.5],[-5,.5],[0,1],[null,.5],[-5,.5],
   [0,.5],[-5,.5],[0,.5],[4,.5],[7,1],[null,1],
   [5,1],[null,.5],[2,.5],[5,1],[null,.5],[2,.5],
   [5,.5],[2,.5],[-1,.5],[2,.5],[-5,1],[null,1],
+  /* answering phrases (close paraphrase) */
+  [7,.5],[7,.5],[7,.5],[null,.5],[9,.5],[7,.5],[6,.5],[7,.5],
+  [9,.5],[7,.5],[6,.5],[7,.5],[12,1],[null,1],
+  [7,.5],[7,.5],[7,.5],[null,.5],[9,.5],[7,.5],[6,.5],[7,.5],
+  /* descending cadence home */
+  [11,.5],[9,.5],[7,.5],[5,.5],[4,.5],[2,.5],[0,1],[null,1.5],
 ];
 const EKN_BASS = [   // simple alternating support, one note per bar-half
   [-24,2],[-24,2],[-24,2],[-17,2],
   [-19,2],[-19,2],[-17,2],[-24,2],
+  [-12,2],[-17,2],[-12,2],[-17,2],
+  [-12,2],[-17,2],[-19,2],[-24,2],
 ];
 
 const st = n => Math.pow(2, n/12);               // semitones → ratio
@@ -152,8 +169,9 @@ function tick(){
 
   if(M.seq) tickSeq(now);
 
-  /* purr only in the dream */
-  purr.gain.setTargetAtTime(M.purr ? 0.035 : 0, now, 0.4);
+  /* the projector purr (the dream, and faintly in Cinema 1) */
+  purr.gain.setTargetAtTime(M.purrLvl || 0, now, 0.4);
+  wet.gain.setTargetAtTime(M.wet ?? 0.35, now, 1.0);
 
   /* pad level + tone follow the mood */
   padGain.gain.setTargetAtTime(M.padGain, now, 1.2);

@@ -50,8 +50,20 @@ function currentMood(){
   if(id === 'mothlight') return 'mothlight';
   if(id === 'conservatory')
     return (P.x >= 342*8 && !GARDENER.dead) ? 'boss' : 'conservatory';
-  if(id === 'arts-centre')
-    return (P.x >= 169*8 && P.x <= 213*8) ? 'mozart' : 'interior';   // the Martini Bar
+  if(id === 'conservatory' && P.x >= 235*8 && P.x < 342*8) return 'arid';
+  if(id === 'arts-centre'){
+    const z = (currentRoom().zones || []).find(z => P.x/8 >= z.x0 && P.x/8 <= z.x1);
+    switch(z?.type){
+      case 'bar':       return 'mozart';
+      case 'foyer':     return 'foyer';
+      case 'stalls':
+      case 'flytower':
+      case 'backstage': return 'theatre';
+      case 'cinema':    return 'cinema';
+      case 'exit':      return 'daylight';      // sunlight spills into the corridor
+      default:          return 'interior';
+    }
+  }
   /* estate route */
   if(typeof levelMod.interiorAt === 'function' && levelMod.interiorAt(P.x + P.w/2, P.y + P.h/2))
     return 'tower';
