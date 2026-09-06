@@ -28,6 +28,11 @@ export const TUNING = {
   wallJumpLock:   10,    // frames of horizontal input ignored after a wall jump
   wallCoyoteFrames: 5,   // grace frames after leaving wall contact
 
+  dashSpeed:     3.2,    // px/frame during a dash (15f × 3.2 = 48px)
+  dashFrames:    15,     // dash duration
+  dashFreeze:    3,      // frames of hit-stop on activation
+  dashUpExitMult: 0.5,   // vy kept when an upward dash ends (softens the pop)
+
   squashLand:    0.55,   // scaleY on hard landing (lower = squashier)
   squashJump:    1.28,   // scaleY on jump
   squashRecover: 0.14,   // lerp speed back to normal

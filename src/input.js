@@ -19,4 +19,8 @@ addEventListener('keyup', e => { keys[e.code] = false; });
 
 export const heldLeft  = () => keys['ArrowLeft']  || keys['KeyA'];
 export const heldRight = () => keys['ArrowRight'] || keys['KeyD'];
+export const heldUp    = () => keys['ArrowUp']    || keys['KeyW'];
+export const heldDown  = () => keys['ArrowDown']  || keys['KeyS'];
 export const heldJump  = () => keys['KeyZ'] || keys['KeyJ'] || keys['Space'];
+export const heldDash  = () => keys['KeyX'] || keys['KeyK'];
+export const heldBarge = () => keys['KeyC'] || keys['KeyL'];

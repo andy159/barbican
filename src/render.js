@@ -125,6 +125,14 @@ export function render(P, alpha, debugOn, fps){
   for(const [lx,ly] of (level.currentRoom().planters || []))
     drawPlanter(lx,ly,cx,cy);
 
+  /* dash afterimages, oldest faintest */
+  for(const t of P.trail){
+    ctx.globalAlpha = Math.max(0, t.life/28);
+    ctx.fillStyle = '#2f3440';
+    ctx.fillRect(t.x - cx, t.y - cy, P.w, P.h);
+  }
+  ctx.globalAlpha = 1;
+
   /* player (interpolated, squashed around bottom-center) */
   const ix = P.px + (P.x-P.px)*alpha - cx;
   const iy = P.py + (P.y-P.py)*alpha - cy;

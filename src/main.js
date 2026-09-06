@@ -4,7 +4,8 @@ import { HIGHWALK } from '../levels/highwalk.js';
 import { makePlayer, respawn, step } from './player.js';
 import { stepCamera } from './camera.js';
 import { bindCanvas, render, stepAmbience } from './render.js';
-import { bindInput, heldLeft, heldRight, heldJump } from './input.js';
+import { bindInput, heldLeft, heldRight, heldUp, heldDown,
+         heldJump, heldDash, heldBarge } from './input.js';
 
 loadRoom(HIGHWALK);
 const P = makePlayer();
@@ -25,7 +26,10 @@ function frame(now){
   fps = fps*0.95 + (1000/Math.max(dt,1))*0.05;
   acc += dt;
   while(acc >= STEP){
-    step(P, { left: heldLeft(), right: heldRight(), jump: heldJump() });
+    step(P, {
+      left: heldLeft(), right: heldRight(), up: heldUp(), down: heldDown(),
+      jump: heldJump(), dash: heldDash(), barge: heldBarge(),
+    });
     stepAmbience();
     stepCamera(P);
     acc -= STEP;

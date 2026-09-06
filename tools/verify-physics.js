@@ -161,4 +161,54 @@ function climbChimney(P, maxFrames){
   check(gained < 8, 'one wall must not be infinitely climbable');
 }
 
+/* ============================================================
+   Dash gauntlet: the 9-tile gap in the top ledge (cols 124-132,
+   surface row 2). Jump range is 7.2 tiles — only a dash crosses.
+   ============================================================ */
+function crossDashGap(dash){
+  level.loadRoom(HIGHWALK);
+  const P = makePlayer();
+  P.x = 107*TILE; P.y = 2*TILE - H; P.px = P.x; P.py = P.y;
+  P.abilities.dash = dash;
+  for(let i = 0; i < 30; i++) step(P, {});
+  const EDGE = 124*TILE, LAND = 133*TILE;
+  let dashDone = false;
+  for(let f = 0; f < 400; f++){
+    const ctrl = { right: true };
+    if(P.grounded ? P.x + W >= EDGE - 4 : true) ctrl.jump = true;   // hold from the lip
+    if(!P.grounded && P.vy > 0.5 && !dashDone && dash){
+      ctrl.dash = true; dashDone = true;                            // dash past the apex
+    }
+    step(P, ctrl);
+    if(P.deaths > 0) return { made: false, x: P.x };
+    if(P.grounded && P.x >= LAND) return { made: true, x: P.x };
+  }
+  return { made: false, x: P.x };
+}
+{
+  const r = crossDashGap(true);
+  console.log('dash gap w/ ability : ' + (r.made
+    ? `CROSSED, landed at col ${(r.x/TILE).toFixed(1)}`
+    : 'FAILED to cross'));
+  check(r.made, 'dash gap must be crossable with dash');
+}
+{
+  const r = crossDashGap(false);
+  console.log('dash gap w/o ability: ' + (r.made
+    ? 'CROSSED — gauntlet is NOT gated!'
+    : 'blocked OK (fell into the gap)'));
+  check(!r.made, 'dash gap must be impossible without dash');
+}
+
+/* --- dash distance on flat ground --- */
+{
+  level.loadRoom(flatRoom());
+  const P = settle();
+  const startX = P.x;
+  step(P, { dash: true });
+  for(let f = 0; f < 40; f++) step(P, {});
+  console.log(`ground dash dist: ${((P.x-startX)/TILE).toFixed(2)} tiles (${(P.x-startX).toFixed(1)}px + skid)`);
+  check(P.x-startX > 48, 'dash should cover at least its 48px core distance');
+}
+
 process.exit(exitCode);
