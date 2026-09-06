@@ -267,6 +267,7 @@ export function createEngine(canvas, scene) {
   function rebuildDynamic() {
     const entries = [];
     for (const it of inter) {
+      if (it.exit) continue;                     // doors draw in the static scene
       if (it.item) {
         const p = byId[it.parent];
         if (!it.taken && p && p.t > 0.85) entries.push({ box: it.box, color: it.color });
@@ -328,9 +329,15 @@ export function createEngine(canvas, scene) {
     if (!promptEl) return;
     if (performance.now() < flashUntil) { promptEl.textContent = flashMsg; return; }
     if (aimed) {
-      promptEl.textContent = aimed.item
-        ? `[E] ${aimed.label}`
-        : `[E] ${aimed.t > 0.5 ? 'close' : 'open'} ${aimed.name}`;
+      if (aimed.exit) {
+        let has = false;
+        try { has = localStorage.getItem(aimed.needsStore) === '1'; } catch (_) { /* ignore */ }
+        promptEl.textContent = `[E] ${has ? aimed.labelHas : aimed.labelNot}`;
+      } else {
+        promptEl.textContent = aimed.item
+          ? `[E] ${aimed.label}`
+          : `[E] ${aimed.t > 0.5 ? 'close' : 'open'} ${aimed.name}`;
+      }
     } else {
       promptEl.textContent = '';
     }
@@ -338,6 +345,10 @@ export function createEngine(canvas, scene) {
 
   function tryInteract() {
     if (!aimed) return false;
+    if (aimed.exit) {
+      window.location.href = aimed.href;
+      return true;
+    }
     if (aimed.item) {
       aimed.taken = true;
       flashMsg = aimed.message || 'taken';

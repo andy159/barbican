@@ -25,6 +25,20 @@ Object.assign(P.abilities, currentRoom().abilities || {});
   }
 }
 
+/* key state survives the trip through the 3D flat via localStorage;
+   a fresh run (no ?at / ?level) starts clean */
+try{
+  const fresh = !new URLSearchParams(location.search).get('at') &&
+                !new URLSearchParams(location.search).get('level');
+  if(fresh){
+    localStorage.removeItem('barbican.keys.flat');
+    localStorage.removeItem('barbican.keys.artsCentre');
+  }else{
+    if(localStorage.getItem('barbican.keys.flat') === '1') P.keys.flat = true;
+    if(localStorage.getItem('barbican.keys.artsCentre') === '1') P.keys.artsCentre = true;
+  }
+}catch(e){}
+
 globalThis.__P = P;                              // console debugging handle
 
 let debugOn = false;

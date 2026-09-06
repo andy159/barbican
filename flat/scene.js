@@ -500,6 +500,17 @@ for (let gx = -5.7; gx < -0.2; gx += 0.28) {
 const DRAWER = '#e6dfd2';
 const interactables = [];
 
+// THE FRONT DOOR — leaving the flat returns to the estate terrace.
+// The prompt nudges until the Arts Centre key has been taken.
+interactables.push({
+  id: 'front_door', exit: true,
+  box: [-0.14, 0.2, -0.5, 0.12, 2.0, 0.5],
+  needsStore: 'barbican.keys.artsCentre',
+  labelHas: 'leave the flat',
+  labelNot: 'leave the flat (something in the kitchen glints...)',
+  href: 'index.html?at=343,46',
+});
+
 // four kitchen drawers along the galley run (fronts slide east into the aisle)
 const kdBands = [[-4.60, -4.22], [-4.17, -3.79], [-3.74, -3.36], [-3.31, -2.93]];
 const kdReveal = [

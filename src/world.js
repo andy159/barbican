@@ -58,7 +58,32 @@ export function checkExit(P){
     if(tx >= x0 && tx <= x1+1 && ty >= y0 && ty <= y1+1){ goTo(p.to, P); return; }
   }
   if(level.currentRoom().id === 'mothlight') return;   // the dream exits via its tear
+
+  /* the Wallside front door ('D'): the tower key lets you into the flat */
+  if(level.currentRoom().id === 'estate-route' &&
+     level.overlapsChar(P.x, P.y, P.w, P.h, 'D')){
+    if(!P.keys.flat){
+      P.exitDeniedT = 90;
+      P.deniedMsg = 'LOCKED — THE KEY IS ON CROMWELL TOWER';
+    }else if(typeof location !== 'undefined'){
+      try{ localStorage.setItem('barbican.keys.flat', '1'); }catch(e){}
+      location.href = 'flat.html';
+    }else{
+      P.enteredFlat = true;                    // headless hook for the verifier
+    }
+    return;
+  }
+
   if(!level.overlapsChar(P.x, P.y, P.w, P.h, 'E')) return;
+  /* the estate's way out is the Arts Centre stage door — it wants the
+     key from the flat's kitchen drawer */
+  if(level.currentRoom().id === 'estate-route' && !P.keys.artsCentre){
+    P.exitDeniedT = 90;
+    P.deniedMsg = P.keys.flat
+      ? 'STAGE DOOR LOCKED — THE KEY IS IN THE WALLSIDE FLAT'
+      : 'STAGE DOOR LOCKED — START AT CROMWELL TOWER';
+    return;
+  }
   idx = (idx + 1) % WORLD.length;
   level.loadRoom(WORLD[idx]);
   Object.assign(P.abilities, WORLD[idx].abilities || {});

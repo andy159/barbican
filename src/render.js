@@ -269,16 +269,46 @@ function drawScene(P, alpha, cx, cy, interiorRoom, consMode, debugOn, fps){
         px(1,1,0,1, '#2c3a52'); px(4,1,0,1, '#2c3a52'); px(7,1,0,1, '#2c3a52'); // rail posts
         ctx.fillStyle = '#37588a';
         ctx.fillRect(sx, sy-1, TILE, 1);         // railing line
+      }else if(t === 'D'){
+        /* a painted front door: panels, brass letterbox, keyhole */
+        if(!solidAt(tx,ty-1) && tileAt(tx,ty-1) !== 'D'){
+          ctx.fillStyle = '#3d5a4a'; ctx.fillRect(sx, sy, TILE, TILE);    // top half
+          ctx.fillStyle = '#2f4739'; ctx.fillRect(sx+1, sy+2, 6, 4);
+          ctx.fillStyle = '#e8b92e'; ctx.fillRect(sx+2, sy+6, 4, 1);      // letterbox
+        }else{
+          ctx.fillStyle = '#3d5a4a'; ctx.fillRect(sx, sy, TILE, TILE);    // bottom half
+          ctx.fillStyle = '#2f4739'; ctx.fillRect(sx+1, sy+1, 6, 4);
+          ctx.fillStyle = '#e8b92e'; ctx.fillRect(sx+5, sy+2, 1, 2);      // keyhole
+        }
+        ctx.fillStyle = '#26332b'; ctx.fillRect(sx, sy, 1, TILE);
+        ctx.fillRect(sx+TILE-1, sy, 1, TILE);
       }else if(t === 'K'){
-        /* the flat key: gold, bobbing, glinting */
-        const bob = Math.round(Math.sin(frame*0.08)*2);
+        /* THE KEY: big, golden, impossible to miss */
+        const bob = Math.round(Math.sin(frame*0.06)*3);
+        const kx = sx - 4, ky = sy - 6 + bob;
+        /* pulsing halo */
+        const halo = 0.16 + Math.sin(frame*0.07)*0.06;
+        ctx.fillStyle = `rgba(247,198,35,${halo})`;      ctx.fillRect(kx-10, ky-8, 36, 30);
+        ctx.fillStyle = `rgba(247,198,35,${halo+0.10})`; ctx.fillRect(kx-4,  ky-3, 24, 20);
+        /* the key itself (~16×10): ring bow, long shaft, two teeth */
         ctx.fillStyle = '#e8b92e';
-        ctx.fillRect(sx+1, sy+3+bob, 4, 2);                    // shaft
-        ctx.fillRect(sx+4, sy+2+bob, 3, 4);                    // bow
-        ctx.fillRect(sx+1, sy+5+bob, 1, 1);                    // tooth
+        ctx.fillRect(kx+10, ky+2, 6, 6);                       // bow (outer)
+        ctx.fillRect(kx,    ky+4, 11, 3);                      // shaft
+        ctx.fillRect(kx,    ky+7, 2, 3);                       // tooth 1
+        ctx.fillRect(kx+3,  ky+7, 2, 2);                       // tooth 2
+        ctx.fillStyle = '#a37c14';
+        ctx.fillRect(kx+12, ky+4, 2, 2);                       // bow hole
         ctx.fillStyle = '#fff3c4';
-        ctx.fillRect(sx+5, sy+3+bob, 1, 1);
-        if(frame % 90 < 6){ ctx.fillStyle = '#ffffff'; ctx.fillRect(sx+6, sy+bob, 1, 1); }
+        ctx.fillRect(kx+10, ky+2, 6, 1);                       // top glint
+        ctx.fillRect(kx,    ky+4, 8, 1);
+        /* sweeping sparkle rays */
+        const sp = frame % 70;
+        if(sp < 10){
+          ctx.fillStyle = 'rgba(255,255,255,0.9)';
+          const r = sp/2;
+          ctx.fillRect(kx+13, ky-2-r, 1, 3); ctx.fillRect(kx+13, ky+9+r, 1, 3);
+          ctx.fillRect(kx+6-r,  ky+1, 3, 1); ctx.fillRect(kx+18+r, ky+1, 3, 1);
+        }
       }else if(t === 'H'){
         /* plywood hoarding: warm boards, plank joints, a pasted notice */
         ctx.fillStyle = '#c09055';  ctx.fillRect(sx,sy,TILE,TILE);
@@ -355,6 +385,29 @@ function drawScene(P, alpha, cx, cy, interiorRoom, consMode, debugOn, fps){
   for(const [lx,ly] of (level.currentRoom().planters || []))
     drawPlanter(lx,ly,cx,cy);
 
+  /* the Wallside house row: low brick cottages with white vault roofs,
+     drawn behind the play layer like the planters */
+  for(const [hx0, hx1] of (level.currentRoom().houses || [])){
+    const x0 = hx0*TILE - cx, x1 = (hx1+1)*TILE - cx;
+    if(x1 < -20 || x0 > VIEW_W+20) continue;
+    const baseY = 48*TILE - cy;                       // terrace floor
+    for(let hx = x0; hx < x1; hx += 40){
+      const w = Math.min(40, x1-hx);
+      ctx.fillStyle = '#7c5a43'; ctx.fillRect(hx, baseY-42, w, 42);       // brick face
+      ctx.fillStyle = '#6a4b36';
+      for(let yy = baseY-40; yy < baseY; yy += 4) ctx.fillRect(hx, yy, w, 1);
+      ctx.fillStyle = PAL.vault;                                          // vault roof
+      ctx.beginPath(); ctx.arc(hx + w/2, baseY-42, w/2, Math.PI, 0); ctx.fill();
+      ctx.fillStyle = PAL.vaultShade; ctx.fillRect(hx + w - 6, baseY-48, 3, 6);
+      ctx.fillStyle = '#2e3436';                                          // windows
+      ctx.fillRect(hx+5, baseY-34, 8, 10); ctx.fillRect(hx+w-13, baseY-34, 8, 10);
+      ctx.fillRect(hx+5, baseY-18, 8, 10); ctx.fillRect(hx+w-13, baseY-18, 8, 10);
+      ctx.fillStyle = '#c9ced2';
+      ctx.fillRect(hx+5, baseY-30, 8, 1); ctx.fillRect(hx+w-13, baseY-30, 8, 1);
+      ctx.fillRect(hx+5, baseY-14, 8, 1); ctx.fillRect(hx+w-13, baseY-14, 8, 1);
+    }
+  }
+
   /* entrance lamps: warm yellow glow marking the way in */
   for(const [lx,ly] of (level.currentRoom().lamps || [])){
     const x = lx*TILE - cx, y = ly*TILE - cy;
@@ -401,6 +454,16 @@ function drawScene(P, alpha, cx, cy, interiorRoom, consMode, debugOn, fps){
     const vig = ctx.createRadialGradient(VIEW_W/2,VIEW_H/2,90,VIEW_W/2,VIEW_H/2,210);
     vig.addColorStop(0,'rgba(30,40,60,0)'); vig.addColorStop(1,'rgba(30,40,60,0.14)');
     ctx.fillStyle = vig; ctx.fillRect(0,0,VIEW_W,VIEW_H);
+  }
+
+  /* locked-door toast */
+  if(P.exitDeniedT > 0 && P.deniedMsg){
+    const tw = P.deniedMsg.length*4.3 + 12;
+    ctx.globalAlpha = Math.min(1, P.exitDeniedT/20);
+    ctx.fillStyle = '#232c4a'; ctx.fillRect(VIEW_W/2 - tw/2, 24, tw, 14);
+    ctx.fillStyle = '#ffd95e'; ctx.font = '7px monospace';
+    ctx.fillText(P.deniedMsg, VIEW_W/2 - tw/2 + 6, 33);
+    ctx.globalAlpha = 1;
   }
 
   if(P.flash > 0){ ctx.fillStyle = `rgba(232,226,212,${P.flash/16})`; ctx.fillRect(0,0,VIEW_W,VIEW_H); }

@@ -105,6 +105,7 @@ set(323,323,52,53,'#'); set(324,325,50,53,'#');
 /* fountain terrace: red brick; the Yellow Line ends at col 352 */
 set(326,352,48,48,'='); set(326,352,49,53,'#');
 set(328,328,47,47,'B');                     // bench: before the islands
+set(341,341,46,47,'D');                     // Wallside front door (needs the tower key)
 set(353,353,50,53,'#'); set(354,354,52,53,'#');  // linked steps to the water
 
 /* the planted islands: [x0, x1, rim row, dome layers [row,dx0,dx1]] */
@@ -160,7 +161,8 @@ const signs = [
   [241,15,'LEVEL 28'],
   [222,4,'LEVEL 43 · ROOF'],
   
-  [327,45,'LAKESIDE TERRACE'],
+  [327,44,'LAKESIDE TERRACE'],
+  [334,42,'WALLSIDE'],
   [341,45,'CENTRAL PONDS →'],
   [447,44,'WAY OUT →'],
 ];
@@ -184,8 +186,9 @@ ${rows.map(r => JSON.stringify(r) + ',').join('\n')}
   planters: ${JSON.stringify(planters)},
   fountains: ${JSON.stringify(fountains)},
   interiors: [[214,7,243,31]],
-  lamps: [[214,29],[229,23],[221,15],[221,7]],
+  lamps: [[214,29],[229,23],[221,15],[221,7],[340,44]],
   doors: [[214,30,215,31]],
+  houses: [[334,348]],
   signs: [
 ${signs.map(([tx,ty,text]) => `    { tx: ${tx}, ty: ${ty}, text: ${JSON.stringify(text)} },`).join('\n')}
   ],

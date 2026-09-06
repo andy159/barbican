@@ -1277,4 +1277,45 @@ function swarmRun(maxF = 1600){
   check(inDream && woke, 'the screen portal and the tear return must both work');
 }
 
+/* --- the key economy: Wallside door and the stage door --- */
+{
+  const { initWorld, checkExit } = await import('../src/world.js');
+  /* the Wallside door refuses without the tower key, admits with it */
+  initWorld('estate-route');
+  const P = makePlayer();
+  P.x = 341*TILE; P.y = 48*TILE - H; P.px = P.x; P.py = P.y;   // in the doorway
+  checkExit(P);
+  const refused = !P.enteredFlat && P.exitDeniedT > 0;
+  P.keys.flat = true; P.exitDeniedT = 0;
+  checkExit(P);
+  const admitted = P.enteredFlat === true;
+  console.log(`wallside door      : ${refused ? 'locked without the key' : 'NOT LOCKED (BAD)'}, ${admitted ? 'opens with it' : 'WILL NOT OPEN'}`);
+  check(refused && admitted, 'the flat door must be gated on the tower key');
+
+  /* the stage door refuses without the arts key, advances with it */
+  initWorld('estate-route');
+  const Q = makePlayer();
+  Q.x = 450*TILE + 4; Q.y = 46*TILE - H; Q.px = Q.x; Q.py = Q.y;   // standing in the exit
+  checkExit(Q);
+  const stageLocked = level.currentRoom().id === 'estate-route' && Q.exitDeniedT > 0;
+  Q.keys.artsCentre = true; Q.exitDeniedT = 0;
+  checkExit(Q);
+  const stageOpen = level.currentRoom().id === 'arts-centre';
+  console.log(`stage door         : ${stageLocked ? 'locked without the key' : 'NOT LOCKED (BAD)'}, ${stageOpen ? 'opens with it' : 'WILL NOT OPEN'}`);
+  check(stageLocked && stageOpen, 'the way out must be gated on the Arts Centre key');
+}
+
+/* --- the roof key cannot be jumped over --- */
+{
+  const P = placeOnRoute(222*TILE, 6);
+  let jumped = false;
+  for(let f = 0; f < 400 && !P.keys.flat; f++){
+    const ctrl = { right: true };
+    if(P.grounded && (Math.floor(P.x/TILE) % 5 === 0)) ctrl.jump = true;   // hop constantly
+    step(P, ctrl);
+  }
+  console.log(`key grab zone      : ${P.keys.flat ? 'caught even while hopping' : 'MISSABLE (BAD)'}`);
+  check(P.keys.flat, 'a hopping player must still collect the roof key');
+}
+
 process.exit(exitCode);

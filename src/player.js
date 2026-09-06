@@ -22,7 +22,7 @@ export function makePlayer(){
     sx: 1, sy: 1,                                // squash/stretch scales
     deaths: 0, flash: 0, dashNote: 0,
     checkpoint: { x: level.spawn.x, y: level.spawn.y },   // last bench rested at
-    keys: { flat: false },
+    keys: { flat: false, artsCentre: false }, exitDeniedT: 0, deniedMsg: '',
     abilities: { wallJump: true, dash: false, barge: false, grapple: false },
   };
 }
@@ -263,12 +263,15 @@ function pitCheck(P){
   }
   if(P.dashNote > 0) P.dashNote--;
 
-  /* the flat key: a small ceremony on pickup */
-  if(level.tileAt(bx, by) === 'K'){
+  /* the flat key: generous grab zone, a small ceremony on pickup */
+  if(!P.keys.flat && level.overlapsChar(P.x-6, P.y-6, P.w+12, P.h+12, 'K')){
+    for(let ty = by-2; ty <= by+2; ty++)
+      for(let tx = bx-2; tx <= bx+2; tx++)
+        if(level.tileAt(tx, ty) === 'K') level.clearTile(tx, ty);
     P.keys.flat = true;
-    level.clearTile(bx, by);
     P.flash = 16; P.freeze = 8;
   }
+  if(P.exitDeniedT > 0) P.exitDeniedT--;
 
   const drowned = level.overlapsChar(P.x, P.y, P.w, P.h, 'W');
   /* cactus spikes ('^') kill on touch — hitbox inset a little for mercy */
