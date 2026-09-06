@@ -135,31 +135,33 @@ and JS module split — is retired; don't reference or resurrect it.
 - Preview: `.claude/launch.json` runs `python3 -m http.server` — use the
   editor preview, never a Bash-launched server.
 
-## 7. State of the build (2026-09-06, evening)
+## 7. State of the build (2026-09-06, night)
 
-- **Tile legend (current):** `#` concrete · `=` walkway+Yellow Line · `-`
-  scuffed line (marks secrets) · `T` tower facade (solid; renders as interior
-  concrete when inside an interior volume) · `<` `>` balcony prow wedges
-  (solid) · `B` bench = checkpoint (non-solid) · `W` deep water = death ·
-  `w` RESERVED shallow water = wading (in progress) · `K` flat key pickup ·
-  `*` RESERVED dash pickup (level 2) · `E` RESERVED level exit · `H` hoarding
-  (barge) · `A`/`D`/`^`/`Y` still reserved per §5.
-- **Levels are generated**: `tools/gen-estate.mjs` writes `levels/highwalk.js`
-  (level 1, "estate-route", 360×56). Hand-edit the generator, not the output.
-  Rooms may carry `interiors: [[x0,y0,x1,y1]]` tile rects — inside them the
-  renderer fades to an interior backdrop.
-- **Player state additions:** `abilities` {wallJump on; dash/barge exist but
-  are gated off in level 1}, `checkpoint` (bench respawn), `keys.flat` (from
-  the tower roof — will unlock the 3D flat).
-- **Verifier:** `node tools/verify-physics.js` — envelope + synthetic
-  mechanics proofs + ~30 route proofs (bot policies: runJump with short-hop
-  `hold`, walkOff, climbShaft with relative bands). Must exit 0 before any
-  commit that touches physics, levels, or the generator.
-- **3D flat:** `flat.html` + `flat/` — dependency-free WebGL Type 20 flat
-  (docs/barbican-flat.md, docs/flat-furnishing.md). Entered later via a door
-  gated on `keys.flat`.
-- **In progress via subagent worktrees** (merge pending): central-ponds
-  finale for level 1 (docs/ponds-scene.md), level 2 "Arts Centre"
-  (docs/arts-centre.md; grants dash), level 3 "Conservatory"
-  (docs/conservatory.md; dash-centric). Planned world order:
-  estate-route → arts-centre → conservatory, plus the flat interior.
+- **World**: `src/world.js` — E-chain estate-route → arts-centre →
+  conservatory, plus portal rooms (Cinema 1 screen → mothlight → back)
+  and `goTo(id, P, at)`. Rooms may carry `abilities` grants,
+  `interiors`/`doors`/`lamps`/`houses` metadata.
+- **Key economy**: tower-roof key ('K', estate) unlocks the Wallside
+  door ('D' tile → flat.html, the 3D interlude); the Arts Centre key
+  (found in the flat's kitchen drawer, persisted via localStorage
+  `barbican.keys.artsCentre`) unlocks the estate's stage-door exit.
+  Fresh runs clear both keys; `?at`/`?level` preserve them.
+- **Intro**: `src/intro.js` cinematic plays on fresh loads; any key
+  skips; dev params bypass.
+- **Tile legend adds**: `D` house door (non-solid, gated), `*` dash
+  pickup, `E` exit, `w` shallow water (wading), `V` vine platform,
+  `F` fly bar / foliage dome, `^` cactus (kills), `K` key.
+- **Levels** (all generated; edit the tools/gen-*.mjs, never the output):
+  estate-route 452×56 (gen-estate), arts-centre 360×56 (gen-artscentre),
+  conservatory 336×60 (gen-conservatory), mothlight 184×68 (gen-mothlight).
+- **Renderer dispatch** in `src/render.js`: mothlight full-takeover;
+  `interior: true` rooms → `src/interior.js`; `backdrop: 'conservatory'`
+  → `src/conservatory.js`; estate east of col 272 → `src/ponds.js`
+  (Ghibli pass); tower interior volumes fade via `interiors` rects.
+- **Verifier**: ~100 proofs across all four levels + mechanics + the key
+  economy + the cinema loop. `node tools/verify-physics.js` must exit 0
+  before any commit touching physics, levels, or generators. Bots must
+  WALK entry paths (placed-inside-only proofs have missed real blockers
+  twice).
+- **In flight**: The Head Gardener boss (conservatory finale) via
+  subagent worktree.
