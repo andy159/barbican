@@ -348,8 +348,8 @@ boxes.push(B([-2.2, 1.08, -3.0, -2.08, 1.12, -2.9], LEATHER, false));   // kettl
 boxes.push(B([-1.83, 0.83, -3.0, -1.6, 0.95, -2.82], '#d2622a', false)); // casserole pair
 boxes.push(B([-1.8, 0.95, -2.97, -1.63, 1.04, -2.85], '#d2622a', false));
 boxes.push(B([-2.35, 0.9, -4.68, -2.05, 1.12, -4.56], CHROME, false));  // toaster
-boxes.push(B([-1.55, 0, -2.97, -1.25, 0.6, -2.79], '#d9c49a'));         // Aalto stool
-boxes.push(B([-1.56, 0.6, -2.98, -1.24, 0.66, -2.78], '#e3d2ac'));
+boxes.push(B([-1.80, 0, -2.99, -1.50, 0.6, -2.79], '#d9c49a'));         // Aalto stool
+boxes.push(B([-1.81, 0.6, -3.0, -1.49, 0.66, -2.78], '#e3d2ac'));
 boxes.push(B([-1.45, 2.15, -2.68, -1.2, 2.4, -2.655], WHITE, false));   // wall clock
 boxes.push(B([-1.36, 2.24, -2.655, -1.29, 2.31, -2.65], LEATHER, false));
 boxes.push(B([-1.6, 1.02, -4.85, -1.32, 1.1, -4.72], TEAK, false));     // fruit bowl on sill
