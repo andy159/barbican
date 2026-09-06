@@ -224,9 +224,9 @@ export function playIntro(canvas, onDone){
     ctx.fillStyle = '#f2e6d8'; ctx.fillRect(x0+9, y0+19, 4, 2);
     ctx.fillRect(x0+8, y0+22, 6, 4);
     ctx.fillStyle = '#e8ecf5'; ctx.font = mono(8);
-    ctx.fillText('sam', x0+21, y0+25);
+    ctx.fillText('andy', x0+21, y0+25);
     ctx.fillStyle = '#5a637a'; ctx.font = mono(6);
-    ctx.fillText('online', x0+42, y0+25);
+    ctx.fillText('online', x0+46, y0+25);
     ctx.fillStyle = '#242c3c'; ctx.fillRect(x0, y0+30, w, 1);
     /* date stamp */
     ctx.fillStyle = '#5a637a'; ctx.font = mono(6);

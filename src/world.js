@@ -14,6 +14,8 @@ export const WORLD = [HIGHWALK, ARTSCENTRE, CONSERVATORY];
 const EXTRA = [MOTHLIGHT];                       // rooms outside the E-chain
 const ALL = [...WORLD, ...EXTRA];
 let idx = 0;
+let outroStarted = false;                        // set once the ending film rolls
+export function outroActive(){ return outroStarted; }
 bindWorld(goTo);                                 // the dream's wake-up call
 
 /* cross-room portals: touching the rect teleports to another room.
@@ -75,6 +77,16 @@ export function checkExit(P){
   }
 
   if(!level.overlapsChar(P.x, P.y, P.w, P.h, 'E')) return;
+  /* the Conservatory's exit door is the end of the game: in a browser,
+     roll the ending film and start a fresh run. Headless keeps the plain
+     wrap-to-estate behavior so the verifier's boss-exit proof holds. */
+  if(level.currentRoom().id === 'conservatory' && typeof location !== 'undefined'){
+    if(outroStarted) return;
+    outroStarted = true;                          // main.js halts its loop on this
+    import('./outro.js').then(m =>
+      m.playOutro(document.getElementById('c'), () => { location.href = 'index.html'; }));
+    return;
+  }
   /* the estate's way out is the Arts Centre stage door — it wants the
      key from the flat's kitchen drawer */
   if(level.currentRoom().id === 'estate-route' && !P.keys.artsCentre){

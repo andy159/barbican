@@ -1,5 +1,5 @@
 /* Fixed 60Hz timestep loop with accumulator + render interpolation. */
-import { initWorld, checkExit } from './world.js';
+import { initWorld, checkExit, outroActive } from './world.js';
 import { currentRoom } from './level.js';
 import { makePlayer, respawn, step } from './player.js';
 import { stepCamera, cam, VIEW_W, VIEW_H } from './camera.js';
@@ -62,6 +62,7 @@ function frame(now){
       jump: heldJump(), dash: heldDash(), barge: heldBarge(),
     });
     checkExit(P);
+    if(outroActive()) return;           // the ending film owns the canvas now
     currentRoom().tick?.(P);            // room hook (moth waves, boss fights)
     stepAmbience();
     stepCamera(P);
@@ -71,10 +72,14 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 
-/* the anime intro plays on a fresh load; dev flows (?level / ?at) skip it */
+/* the anime intro plays on a fresh load; dev flows (?level / ?at) skip it.
+   ?outroshot=n jumps straight into the ending film (debug/screenshots). */
 const wantsIntro = !new URLSearchParams(location.search).get('level') &&
                    !new URLSearchParams(location.search).get('at');
-if(wantsIntro){
+if(new URLSearchParams(location.search).get('outroshot')){
+  import('./outro.js').then(m =>
+    m.playOutro(document.getElementById('c'), () => { location.href = 'index.html'; }));
+}else if(wantsIntro){
   playIntro(document.getElementById('c'), () => {
     last = performance.now();
     requestAnimationFrame(frame);
